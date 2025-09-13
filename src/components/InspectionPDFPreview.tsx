@@ -70,50 +70,79 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
 
   const clearSignature = () => {
     if (signatureRef.current) {
-      signatureRef.current.clear();
+      try {
+        signatureRef.current.clear();
+        toast({ title: 'Firma eliminada' });
+      } catch (error) {
+        console.error('Error clearing signature:', error);
+      }
     }
   };
 
   const saveSignature = () => {
     if (signatureRef.current) {
-      const dataURL = signatureRef.current.getTrimmedCanvas().toDataURL('image/png');
-      setSignatureDataURL(dataURL);
-      setShowSignaturePad(false);
-      toast({ title: 'Firma guardada correctamente' });
+      try {
+        if (signatureRef.current.isEmpty()) {
+          toast({ title: 'Error', description: 'Por favor, agregue su firma antes de guardar', variant: 'destructive' });
+          return;
+        }
+        
+        const dataURL = signatureRef.current.getTrimmedCanvas().toDataURL('image/png');
+        setSignatureDataURL(dataURL);
+        setShowSignaturePad(false);
+        toast({ title: 'Firma guardada correctamente' });
+      } catch (error) {
+        console.error('Error saving signature:', error);
+        toast({ title: 'Error', description: 'No se pudo guardar la firma', variant: 'destructive' });
+      }
     }
   };
 
   const generatePDF = async () => {
-    if (!pdfContentRef.current) return;
+    if (!pdfContentRef.current) {
+      toast({ title: 'Error', description: 'No se encontró el contenido para generar PDF', variant: 'destructive' });
+      return;
+    }
 
     try {
+      toast({ title: 'Generando PDF...', description: 'Por favor espere' });
+      
       const canvas = await html2canvas(pdfContentRef.current, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: false,
+        height: pdfContentRef.current.scrollHeight,
+        width: pdfContentRef.current.scrollWidth
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 0.8);
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calculate image dimensions to fit PDF
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 0;
-
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      const ratio = Math.min(pdfWidth / imgWidth * 72/96, pdfHeight / imgHeight * 72/96);
       
-      const fileName = `Acta_Inspeccion_${inspectionData.work.name}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const scaledWidth = imgWidth * ratio;
+      const scaledHeight = imgHeight * ratio;
+      
+      const x = (pdfWidth - scaledWidth) / 2;
+      const y = 10; // Small margin from top
+
+      pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
+      
+      const fileName = `Acta_Inspeccion_${inspectionData.work.name || 'Obra'}_${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(fileName);
       
-      toast({ title: 'PDF generado correctamente', description: 'El archivo se ha descargado' });
+      toast({ title: 'PDF generado correctamente', description: `Archivo descargado: ${fileName}` });
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast({ title: 'Error al generar PDF', description: 'Inténtelo de nuevo', variant: 'destructive' });
+      toast({ title: 'Error al generar PDF', description: 'Verifique que todos los campos estén completos', variant: 'destructive' });
     }
   };
 
@@ -141,12 +170,21 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
           <div className="flex gap-2">
             <Button 
               variant="outline"
-              onClick={() => setShowSignaturePad(true)}
+              onClick={() => {
+                console.log('Signature button clicked');
+                setShowSignaturePad(true);
+              }}
             >
               <PenTool className="h-4 w-4 mr-2" />
               {signatureDataURL ? 'Cambiar Firma' : 'Firmar Documento'}
             </Button>
-            <Button onClick={generatePDF} className="bg-primary">
+            <Button 
+              onClick={() => {
+                console.log('PDF generation button clicked');
+                generatePDF();
+              }} 
+              className="bg-primary"
+            >
               <Download className="h-4 w-4 mr-2" />
               Descargar PDF
             </Button>
@@ -164,9 +202,15 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                   canvasProps={{
                     width: 500,
                     height: 200,
-                    className: 'signature-canvas'
+                    className: 'signature-canvas border rounded',
+                    style: { 
+                      border: '2px solid #e2e8f0',
+                      borderRadius: '8px',
+                      cursor: 'crosshair'
+                    }
                   }}
                   backgroundColor="rgb(255,255,255)"
+                  penColor="rgb(0,0,0)"
                 />
               </div>
               <div className="flex justify-between">
