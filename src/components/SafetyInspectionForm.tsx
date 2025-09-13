@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Upload, Plus, Eye } from 'lucide-react';
+import { Trash2, Upload, Plus, Eye, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { InspectionPDFPreview } from './InspectionPDFPreview';
 
@@ -31,11 +31,6 @@ interface EPIItem {
   checked: boolean;
 }
 
-interface VanInspectionItem {
-  aspect: string;
-  state: 'Bueno' | 'Regular' | 'Malo' | '';
-  observations: string;
-}
 
 interface InspectionData {
   inspector: {
@@ -57,7 +52,6 @@ interface InspectionData {
   };
   vanStatus: {
     licensePlate: string;
-    inspectionItems: VanInspectionItem[];
     photos: PhotoWithComment[];
   };
   generalObservations: string;
@@ -70,14 +64,6 @@ const defaultEPIs: EPIItem[] = [
   { id: '4', name: 'Gafas de protección', checked: false },
 ];
 
-const vanInspectionAspects = [
-  'Estado exterior',
-  'Estado interior',
-  'Organización herramientas',
-  'Limpieza general',
-  'Documentación vehículo',
-  'Kit emergencia',
-];
 
 export const SafetyInspectionForm = () => {
   const [showPDFPreview, setShowPDFPreview] = useState(false);
@@ -90,11 +76,6 @@ export const SafetyInspectionForm = () => {
     toolsStatus: { photos: [] },
     vanStatus: {
       licensePlate: '',
-      inspectionItems: vanInspectionAspects.map(aspect => ({
-        aspect,
-        state: '' as const,
-        observations: ''
-      })),
       photos: []
     },
     generalObservations: ''
@@ -186,17 +167,6 @@ export const SafetyInspectionForm = () => {
     }));
   };
 
-  const updateVanInspectionItem = (index: number, field: 'state' | 'observations', value: string) => {
-    setInspectionData(prev => ({
-      ...prev,
-      vanStatus: {
-        ...prev.vanStatus,
-        inspectionItems: prev.vanStatus.inspectionItems.map((item, i) =>
-          i === index ? { ...item, [field]: value } : item
-        )
-      }
-    }));
-  };
 
   const PhotoUploadSection = ({ 
     title, 
@@ -476,40 +446,8 @@ export const SafetyInspectionForm = () => {
               />
             </div>
             
-            <div className="space-y-4">
-              <h4 className="font-semibold">Aspectos de Inspección</h4>
-              {inspectionData.vanStatus.inspectionItems.map((item, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-3">
-                  <h5 className="font-medium">{item.aspect}</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Estado</Label>
-                      <select
-                        className="w-full p-2 border rounded-md"
-                        value={item.state}
-                        onChange={(e) => updateVanInspectionItem(index, 'state', e.target.value)}
-                      >
-                        <option value="">Seleccionar...</option>
-                        <option value="Bueno">Bueno</option>
-                        <option value="Regular">Regular</option>
-                        <option value="Malo">Malo</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label>Observaciones</Label>
-                      <Input
-                        value={item.observations}
-                        onChange={(e) => updateVanInspectionItem(index, 'observations', e.target.value)}
-                        placeholder="Observaciones..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
             <PhotoUploadSection
-              title="Fotos de la Furgoneta"
+              title="Fotos de la Furgoneta (cada foto debe incluir un comentario que describa qué aspecto se está inspeccionando)"
               photos={inspectionData.vanStatus.photos}
               section="vanStatus"
             />
@@ -534,8 +472,22 @@ export const SafetyInspectionForm = () => {
           </CardContent>
         </Card>
 
-        {/* Generate PDF Button */}
-        <div className="flex justify-center pb-8">
+        {/* Submit and Generate PDF Buttons */}
+        <div className="flex justify-center gap-4 pb-8">
+          <Button
+            onClick={() => {
+              toast({ 
+                title: 'Formulario guardado', 
+                description: 'Los datos han sido guardados correctamente' 
+              });
+            }}
+            size="lg"
+            variant="outline"
+            className="shadow-safety"
+          >
+            <FileText className="h-5 w-5 mr-2" />
+            Guardar Formulario
+          </Button>
           <Button
             onClick={() => setShowPDFPreview(true)}
             size="lg"

@@ -28,11 +28,6 @@ interface EPIItem {
   checked: boolean;
 }
 
-interface VanInspectionItem {
-  aspect: string;
-  state: 'Bueno' | 'Regular' | 'Malo' | '';
-  observations: string;
-}
 
 interface InspectionData {
   inspector: {
@@ -54,7 +49,6 @@ interface InspectionData {
   };
   vanStatus: {
     licensePlate: string;
-    inspectionItems: VanInspectionItem[];
     photos: PhotoWithComment[];
   };
   generalObservations: string;
@@ -260,7 +254,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
               ))}
             </table>
 
-            {/* EPIs */}
+            {/* EPIs - Dynamic from photos */}
             <div className="w-full bg-gray-100 text-center text-xs font-bold py-1 mb-2">
               EQUIPOS DE PROTECCIÓN INDIVIDUAL REVISADOS
             </div>
@@ -279,31 +273,39 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
               ))}
             </table>
 
-            {/* Work Environment */}
+            {/* Work Environment - Dynamic from photo comments */}
             <div className="w-full bg-gray-100 text-center text-xs font-bold py-1 mb-2">
               ENTORNO DE LA OBRA
             </div>
             <div className="bg-white border border-black p-2 mb-4 text-xs">
               <p><strong>Fotografías adjuntas:</strong> {inspectionData.workEnvironment.photos.length}</p>
-              <p><strong>Comentarios sobre fotografías:</strong></p>
-              {inspectionData.workEnvironment.photos.map((photo, index) => (
-                <p key={index} className="ml-2">• {photo.comment || 'Sin comentario'}</p>
-              ))}
+              {inspectionData.workEnvironment.photos.length > 0 && (
+                <>
+                  <p><strong>Aspectos inspeccionados:</strong></p>
+                  {inspectionData.workEnvironment.photos.map((photo, index) => (
+                    <p key={index} className="ml-2">• {photo.comment || `Aspecto ${index + 1}: Sin descripción`}</p>
+                  ))}
+                </>
+              )}
             </div>
 
-            {/* Tools Status */}
+            {/* Tools Status - Dynamic from photo comments */}
             <div className="w-full bg-gray-100 text-center text-xs font-bold py-1 mb-2">
               ESTADO DE HERRAMIENTAS
             </div>
             <div className="bg-white border border-black p-2 mb-4 text-xs">
               <p><strong>Fotografías adjuntas:</strong> {inspectionData.toolsStatus.photos.length}</p>
-              <p><strong>Comentarios sobre fotografías:</strong></p>
-              {inspectionData.toolsStatus.photos.map((photo, index) => (
-                <p key={index} className="ml-2">• {photo.comment || 'Sin comentario'}</p>
-              ))}
+              {inspectionData.toolsStatus.photos.length > 0 && (
+                <>
+                  <p><strong>Herramientas inspeccionadas:</strong></p>
+                  {inspectionData.toolsStatus.photos.map((photo, index) => (
+                    <p key={index} className="ml-2">• {photo.comment || `Herramienta ${index + 1}: Sin descripción`}</p>
+                  ))}
+                </>
+              )}
             </div>
 
-            {/* Van Status */}
+            {/* Van Status - Dynamic from photo comments */}
             <div className="w-full bg-gray-100 text-center text-xs font-bold py-1 mb-2">
               ESTADO DE LA FURGONETA
             </div>
@@ -313,20 +315,23 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 <td className="bg-gray-50 p-1 border border-gray-300">{inspectionData.vanStatus.licensePlate}</td>
               </tr>
             </table>
-            <table className="w-full border-collapse border border-gray-300 mb-2 text-xs">
-              <tr>
-                <th className="bg-green-700 text-white p-1 border border-gray-300 text-left">ASPECTO</th>
-                <th className="bg-green-700 text-white p-1 border border-gray-300 text-left">ESTADO</th>
-                <th className="bg-green-700 text-white p-1 border border-gray-300 text-left">OBSERVACIONES</th>
-              </tr>
-              {inspectionData.vanStatus.inspectionItems.map((item, index) => (
-                <tr key={index}>
-                  <td className="bg-gray-50 p-1 border border-gray-300">{item.aspect}</td>
-                  <td className="bg-gray-50 p-1 border border-gray-300">{item.state || 'No evaluado'}</td>
-                  <td className="bg-gray-50 p-1 border border-gray-300">{item.observations}</td>
+            
+            {/* Generate dynamic inspection items from photo comments */}
+            {inspectionData.vanStatus.photos.length > 0 && (
+              <table className="w-full border-collapse border border-gray-300 mb-2 text-xs">
+                <tr>
+                  <th className="bg-green-700 text-white p-1 border border-gray-300 text-left">ASPECTO INSPECCIONADO</th>
+                  <th className="bg-green-700 text-white p-1 border border-gray-300 text-left">OBSERVACIONES</th>
                 </tr>
-              ))}
-            </table>
+                {inspectionData.vanStatus.photos.map((photo, index) => (
+                  <tr key={index}>
+                    <td className="bg-gray-50 p-1 border border-gray-300">{photo.comment ? photo.comment.split(':')[0] || `Inspección ${index + 1}` : `Inspección ${index + 1}`}</td>
+                    <td className="bg-gray-50 p-1 border border-gray-300">{photo.comment || 'Sin observaciones'}</td>
+                  </tr>
+                ))}
+              </table>
+            )}
+            
             <div className="bg-white border border-black p-2 mb-4 text-xs">
               <p><strong>Fotografías adjuntas:</strong> {inspectionData.vanStatus.photos.length}</p>
               <p><strong>Comentarios sobre fotografías:</strong></p>
