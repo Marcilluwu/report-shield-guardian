@@ -9,13 +9,50 @@ import SignatureCanvas from 'react-signature-canvas';
 import type { default as SignatureCanvasType } from 'react-signature-canvas';
 import { toast } from '@/hooks/use-toast';
 
+interface Worker {
+  id: string;
+  name: string;
+  dni: string;
+  category: string;
+  company: string;
+}
+
+interface EPIItem {
+  id: string;
+  name: string;
+  checked: boolean;
+}
+
+interface PhotoWithComment {
+  id: string;
+  file: File;
+  comment: string;
+  url: string;
+}
+
 interface InspectionData {
-  date: string;
-  inspector: string;
-  location: string;
-  findings: string[];
-  recommendations: string[];
-  priority: 'low' | 'medium' | 'high';
+  inspector: {
+    name: string;
+    email: string;
+  };
+  work: {
+    name: string;
+    location: string;
+    promotingCompany: string;
+  };
+  workers: Worker[];
+  episReviewed: EPIItem[];
+  workEnvironment: {
+    photos: PhotoWithComment[];
+  };
+  toolsStatus: {
+    photos: PhotoWithComment[];
+  };
+  vanStatus: {
+    licensePlate: string;
+    photos: PhotoWithComment[];
+  };
+  generalObservations: string;
 }
 
 interface InspectionPDFPreviewProps {
@@ -97,7 +134,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       }
 
       // ✅ Validar que hay datos del formulario
-      if (!data || !data.date || !data.inspector) {
+      if (!data || !data.inspector?.name) {
         toast({
           title: 'Error',
           description: 'Faltan datos requeridos para generar el PDF',
@@ -163,7 +200,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       }
 
       // ✅ Generar nombre de archivo único
-      const fileName = `reporte-inspeccion-${data.date}-${Date.now()}.pdf`;
+      const fileName = `reporte-inspeccion-${new Date().toISOString().split('T')[0]}-${Date.now()}.pdf`;
       
       pdf.save(fileName);
 
@@ -244,7 +281,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 REPORTE DE INSPECCIÓN
               </h1>
               <p className="text-gray-600 mt-2">
-                Fecha: {new Date(data.date).toLocaleDateString('es-ES')}
+                Fecha: {new Date().toLocaleDateString('es-ES')}
               </p>
             </div>
 
@@ -252,46 +289,121 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold text-lg mb-2">Inspector:</h3>
-                <p className="text-gray-700">{data.inspector}</p>
+                <p className="text-gray-700">{data.inspector.name}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Email:</h3>
+                <p className="text-gray-700">{data.inspector.email}</p>
+              </div>
+            </div>
+
+            {/* Información del trabajo */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Obra:</h3>
+                <p className="text-gray-700">{data.work.name}</p>
               </div>
               <div>
                 <h3 className="font-semibold text-lg mb-2">Ubicación:</h3>
-                <p className="text-gray-700">{data.location}</p>
+                <p className="text-gray-700">{data.work.location}</p>
               </div>
             </div>
 
-            {/* Hallazgos */}
             <div>
-              <h3 className="font-semibold text-lg mb-3">Hallazgos:</h3>
-              <ul className="list-disc list-inside space-y-2">
-                {data.findings?.map((finding, index) => (
-                  <li key={index} className="text-gray-700">{finding}</li>
-                ))}
-              </ul>
+              <h3 className="font-semibold text-lg mb-2">Empresa Promotora:</h3>
+              <p className="text-gray-700">{data.work.promotingCompany}</p>
             </div>
 
-            {/* Recomendaciones */}
+            {/* Trabajadores */}
             <div>
-              <h3 className="font-semibold text-lg mb-3">Recomendaciones:</h3>
-              <ul className="list-disc list-inside space-y-2">
-                {data.recommendations?.map((rec, index) => (
-                  <li key={index} className="text-gray-700">{rec}</li>
+              <h3 className="font-semibold text-lg mb-3">Trabajadores Presentes:</h3>
+              <div className="space-y-2">
+                {data.workers.map((worker, index) => (
+                  <div key={index} className="bg-gray-50 p-3 rounded">
+                    <p><strong>Nombre:</strong> {worker.name}</p>
+                    <p><strong>DNI:</strong> {worker.dni}</p>
+                    <p><strong>Categoría:</strong> {worker.category}</p>
+                    <p><strong>Empresa:</strong> {worker.company}</p>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
 
-            {/* Prioridad */}
+            {/* EPIs Revisados */}
             <div>
-              <h3 className="font-semibold text-lg mb-2">Prioridad:</h3>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                data.priority === 'high' ? 'bg-red-100 text-red-800' :
-                data.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-green-100 text-green-800'
-              }`}>
-                {data.priority === 'high' ? 'Alta' : 
-                 data.priority === 'medium' ? 'Media' : 'Baja'}
-              </span>
+              <h3 className="font-semibold text-lg mb-3">EPIs Revisados:</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {data.episReviewed.map((epi, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <span className={`w-4 h-4 rounded ${epi.checked ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span>{epi.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Secciones dinámicas de fotos */}
+            {data.workEnvironment.photos.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Entorno de Trabajo:</h3>
+                <div className="space-y-4">
+                  {data.workEnvironment.photos.map((photo, index) => (
+                    <div key={index} className="border rounded p-4">
+                      <p className="font-medium">{photo.comment}</p>
+                      <img 
+                        src={photo.url} 
+                        alt={`Foto ${index + 1}`}
+                        className="mt-2 max-w-xs rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.toolsStatus.photos.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Estado de Herramientas:</h3>
+                <div className="space-y-4">
+                  {data.toolsStatus.photos.map((photo, index) => (
+                    <div key={index} className="border rounded p-4">
+                      <p className="font-medium">{photo.comment}</p>
+                      <img 
+                        src={photo.url} 
+                        alt={`Foto ${index + 1}`}
+                        className="mt-2 max-w-xs rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.vanStatus.photos.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Estado de la Furgoneta ({data.vanStatus.licensePlate}):</h3>
+                <div className="space-y-4">
+                  {data.vanStatus.photos.map((photo, index) => (
+                    <div key={index} className="border rounded p-4">
+                      <p className="font-medium">{photo.comment}</p>
+                      <img 
+                        src={photo.url} 
+                        alt={`Foto ${index + 1}`}
+                        className="mt-2 max-w-xs rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Observaciones generales */}
+            {data.generalObservations && (
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Observaciones Generales:</h3>
+                <p className="text-gray-700">{data.generalObservations}</p>
+              </div>
+            )}
 
             {/* Área de firma */}
             <div className="border-t pt-6">

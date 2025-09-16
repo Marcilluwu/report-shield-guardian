@@ -14,9 +14,10 @@ if (typeof window !== 'undefined') {
   }
   
   if (!window.crypto.getRandomValues) {
-    window.crypto.getRandomValues = function(array: Uint8Array | Uint16Array | Uint32Array) {
-      for (let i = 0; i < array.length; i++) {
-        array[i] = Math.floor(Math.random() * 256);
+    window.crypto.getRandomValues = function<T extends ArrayBufferView>(array: T): T {
+      const uint8Array = new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
+      for (let i = 0; i < uint8Array.length; i++) {
+        uint8Array[i] = Math.floor(Math.random() * 256);
       }
       return array;
     };

@@ -233,8 +233,8 @@ export const SafetyInspectionForm = () => {
   if (showPDFPreview) {
     return (
       <InspectionPDFPreview
-        inspectionData={inspectionData}
-        onBack={() => setShowPDFPreview(false)}
+        data={inspectionData}
+        onClose={() => setShowPDFPreview(false)}
       />
     );
   }
