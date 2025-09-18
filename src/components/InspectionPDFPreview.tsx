@@ -274,140 +274,132 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       {/* Contenido del PDF */}
       <Card>
         <CardContent className="p-8">
-          <div ref={pdfContentRef} className="space-y-6">
+          <div ref={pdfContentRef} className="space-y-8">
             {/* Header del reporte */}
-            <div className="text-center border-b pb-4">
-              <h1 className="text-3xl font-bold text-gray-800">
-                REPORTE DE INSPECCIÓN
+            <div className="text-center border-b-2 border-gray-800 pb-6">
+              <h1 className="text-4xl font-bold text-gray-800 mb-4">
+                ACTA DE INSPECCIÓN DE SEGURIDAD
               </h1>
-              <p className="text-gray-600 mt-2">
-                Fecha: {new Date().toLocaleDateString('es-ES')}
-              </p>
-            </div>
-
-            {/* Información básica */}
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Inspector:</h3>
-                <p className="text-gray-700">{data.inspector.name}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Email:</h3>
-                <p className="text-gray-700">{data.inspector.email}</p>
+              <div className="text-lg text-gray-700">
+                <p className="mb-2"><strong>FECHA INSPECCIÓN:</strong> {new Date().toLocaleDateString('es-ES')}</p>
               </div>
             </div>
 
-            {/* Información del trabajo */}
-            <div className="grid grid-cols-2 gap-6">
+            {/* Información del proyecto */}
+            <div className="space-y-4 text-base">
               <div>
-                <h3 className="font-semibold text-lg mb-2">Obra:</h3>
-                <p className="text-gray-700">{data.work.name}</p>
+                <p><strong>PROMOTOR:</strong> {data.work.promotingCompany}</p>
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Ubicación:</h3>
-                <p className="text-gray-700">{data.work.location}</p>
+                <p><strong>PROYECTO:</strong> {data.work.name}</p>
+              </div>
+              <div>
+                <p><strong>EMPLAZAMIENTO:</strong> {data.work.location}</p>
+              </div>
+              <div>
+                <p><strong>INSPECTOR:</strong> {data.inspector.name}</p>
+              </div>
+              <div>
+                <p><strong>EMAIL:</strong> {data.inspector.email}</p>
               </div>
             </div>
 
+            {/* Participantes */}
             <div>
-              <h3 className="font-semibold text-lg mb-2">Empresa Promotora:</h3>
-              <p className="text-gray-700">{data.work.promotingCompany}</p>
-            </div>
-
-            {/* Trabajadores */}
-            <div>
-              <h3 className="font-semibold text-lg mb-3">Trabajadores Presentes:</h3>
-              <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">PARTICIPANTES</h2>
+              <div className="space-y-3">
+                <div>
+                  <p><strong>INSPECTOR DE SEGURIDAD:</strong> {data.inspector.name}</p>
+                </div>
                 {data.workers.map((worker, index) => (
-                  <div key={index} className="bg-gray-50 p-3 rounded">
-                    <p><strong>Nombre:</strong> {worker.name}</p>
-                    <p><strong>DNI:</strong> {worker.dni}</p>
-                    <p><strong>Categoría:</strong> {worker.category}</p>
-                    <p><strong>Empresa:</strong> {worker.company}</p>
+                  <div key={index}>
+                    <p><strong>{worker.category.toUpperCase()}:</strong> {worker.name}, {worker.company}</p>
+                    <p className="text-sm text-gray-600 ml-6">DNI: {worker.dni}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* EPIs Revisados */}
+            {/* Resumen de la inspección */}
             <div>
-              <h3 className="font-semibold text-lg mb-3">EPIs Revisados:</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {data.episReviewed.map((epi, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <span className={`w-4 h-4 rounded ${epi.checked ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                    <span>{epi.name}</span>
-                  </div>
-                ))}
-              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">RESUMEN DE LA INSPECCIÓN</h2>
+              <p className="mb-4 text-base">Se levanta acta de la inspección de seguridad realizada en la fecha indicada.</p>
+              
+              {/* Tabla de EPIs */}
+              <table className="w-full border-collapse border border-gray-400 mb-6">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">Código</th>
+                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">EPI/Elemento</th>
+                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">Estado</th>
+                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">Responsable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.episReviewed.map((epi, index) => (
+                    <tr key={index}>
+                      <td className="border border-gray-400 px-3 py-2">{String(index + 1).padStart(2, '0')}</td>
+                      <td className="border border-gray-400 px-3 py-2">{epi.name}</td>
+                      <td className="border border-gray-400 px-3 py-2">{epi.checked ? 'Correcto' : 'Deficiente'}</td>
+                      <td className="border border-gray-400 px-3 py-2">Inspector</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
-            {/* Secciones dinámicas de fotos */}
-            {data.workEnvironment.photos.length > 0 && (
+            {/* Desarrollo de la inspección */}
+            {[...data.workEnvironment.photos, ...data.toolsStatus.photos, ...data.vanStatus.photos].length > 0 && (
               <div>
-                <h3 className="font-semibold text-lg mb-3">Entorno de Trabajo:</h3>
-                <div className="space-y-4">
-                  {data.workEnvironment.photos.map((photo, index) => (
-                    <div key={index} className="border rounded p-4">
-                      <p className="font-medium">{photo.comment}</p>
-                      <img 
-                        src={photo.url} 
-                        alt={`Foto ${index + 1}`}
-                        className="mt-2 max-w-xs rounded"
-                      />
+                <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">DESARROLLO DE LA INSPECCIÓN</h2>
+                <div className="space-y-6">
+                  {[...data.workEnvironment.photos, ...data.toolsStatus.photos, ...data.vanStatus.photos].map((photo, index) => (
+                    <div key={index} className="space-y-3">
+                      <h3 className="text-xl font-bold text-gray-800">
+                        {String(index + 1).padStart(2, '0')}.{String(index + 1).padStart(2, '0')}
+                      </h3>
+                      <p className="text-base">{photo.comment}</p>
+                      <div className="flex justify-center">
+                        <img 
+                          src={photo.url} 
+                          alt={`Inspección ${index + 1}`}
+                          className="max-w-md max-h-64 object-contain border border-gray-300"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {data.toolsStatus.photos.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Estado de Herramientas:</h3>
-                <div className="space-y-4">
-                  {data.toolsStatus.photos.map((photo, index) => (
-                    <div key={index} className="border rounded p-4">
-                      <p className="font-medium">{photo.comment}</p>
-                      <img 
-                        src={photo.url} 
-                        alt={`Foto ${index + 1}`}
-                        className="mt-2 max-w-xs rounded"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {data.vanStatus.photos.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Estado de la Furgoneta ({data.vanStatus.licensePlate}):</h3>
-                <div className="space-y-4">
-                  {data.vanStatus.photos.map((photo, index) => (
-                    <div key={index} className="border rounded p-4">
-                      <p className="font-medium">{photo.comment}</p>
-                      <img 
-                        src={photo.url} 
-                        alt={`Foto ${index + 1}`}
-                        className="mt-2 max-w-xs rounded"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Observaciones generales */}
+            {/* Asuntos pendientes */}
             {data.generalObservations && (
               <div>
-                <h3 className="font-semibold text-lg mb-2">Observaciones Generales:</h3>
-                <p className="text-gray-700">{data.generalObservations}</p>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">ASUNTOS PENDIENTES</h2>
+                <table className="w-full border-collapse border border-gray-400">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Código</th>
+                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Asunto</th>
+                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Estado</th>
+                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Responsable</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-400 px-3 py-2">01</td>
+                      <td className="border border-gray-400 px-3 py-2">{data.generalObservations}</td>
+                      <td className="border border-gray-400 px-3 py-2">Pendiente</td>
+                      <td className="border border-gray-400 px-3 py-2">Inspector</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             )}
 
             {/* Área de firma */}
-            <div className="border-t pt-6">
-              <h3 className="font-semibold text-lg mb-4">Firma del Inspector:</h3>
+            <div className="border-t-2 border-gray-800 pt-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-400 pb-2">FIRMA DE LOS PARTICIPANTES</h2>
               
               {/* Canvas de firma */}
               <div className="border border-gray-300 mb-4">
@@ -444,11 +436,27 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 </div>
               )}
 
-              <div className="mt-8 text-center">
-                <div className="border-t border-gray-400 w-64 mx-auto"></div>
-                <p className="text-sm text-gray-600 mt-2">
-                  Firma y fecha del inspector
-                </p>
+              {/* Tabla de firmas */}
+              <div className="mt-8">
+                <table className="w-full border-collapse border border-gray-400">
+                  <thead>
+                    <tr>
+                      <th className="border border-gray-400 px-4 py-8 w-1/2 text-center font-bold">El Inspector de Seguridad</th>
+                      <th className="border border-gray-400 px-4 py-8 w-1/2 text-center font-bold">El Constructor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-400 px-4 py-8 text-center font-bold">La Dirección de Obra</td>
+                      <td className="border border-gray-400 px-4 py-8 text-center font-bold">La Propiedad</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600">
+                    Firma digital del inspector: {new Date().toLocaleDateString('es-ES')}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
