@@ -168,7 +168,7 @@ export const SafetyInspectionForm = () => {
   };
 
 
-  const PhotoUploadSection = ({ 
+  const PhotoUploadSection = React.memo(({ 
     title, 
     photos, 
     section 
@@ -222,13 +222,14 @@ export const SafetyInspectionForm = () => {
                 value={photo.comment}
                 onChange={(e) => updatePhotoComment(photo.id, e.target.value, section)}
                 placeholder="Añadir comentario sobre esta foto..."
+                key={`textarea-${photo.id}`} // Forzar re-render con key única
               />
             </div>
           </div>
         ))}
       </CardContent>
     </Card>
-  );
+  ));
 
   if (showPDFPreview) {
     return (

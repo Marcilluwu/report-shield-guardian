@@ -1,13 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Printer } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import SignatureCanvas from 'react-signature-canvas';
-// ✅ Importar el tipo correctamente
-import type { default as SignatureCanvasType } from 'react-signature-canvas';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Download, Printer, Settings, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { generateDocx } from '@/utils/docxGenerator';
+import { ConfigManager } from '@/utils/configManager';
 
 interface Worker {
   id: string;
@@ -64,156 +63,65 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
   data,
   onClose
 }) => {
-  // ✅ Tipado correcto de las referencias
-  const pdfContentRef = useRef<HTMLDivElement | null>(null);
-  const signatureRef = useRef<SignatureCanvasType | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [signatureData, setSignatureData] = useState<string>('');
+  const [signatureName, setSignatureName] = useState(data.inspector.name || '');
+  const [configLoaded, setConfigLoaded] = useState(ConfigManager.hasConfig());
 
-  // ✅ Función mejorada para limpiar la firma
-  const clearSignature = () => {
+  // Cargar configuración de ruta
+  const handleLoadConfig = async () => {
     try {
-      if (signatureRef.current) {
-        signatureRef.current.clear();
-        setSignatureData('');
-        toast({
-          title: 'Firma limpiada',
-          description: 'La firma ha sido eliminada correctamente.'
-        });
-      }
+      await ConfigManager.loadConfig();
+      setConfigLoaded(true);
+      toast({
+        title: 'Configuración cargada',
+        description: `Ruta configurada: ${ConfigManager.getRuta()}`,
+      });
     } catch (error) {
-      console.error('Error al limpiar la firma:', error);
       toast({
         title: 'Error',
-        description: 'No se pudo limpiar la firma.',
+        description: 'No se pudo cargar la configuración',
         variant: 'destructive'
       });
     }
   };
 
-  // ✅ Función mejorada para guardar la firma
-  const saveSignature = () => {
-    try {
-      if (signatureRef.current && !signatureRef.current.isEmpty()) {
-        const dataURL = signatureRef.current.toDataURL();
-        setSignatureData(dataURL);
-        toast({
-          title: 'Firma guardada',
-          description: 'La firma se ha guardado correctamente.'
-        });
-      } else {
-        toast({
-          title: 'Advertencia',
-          description: 'Por favor, dibuje su firma antes de guardar.',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Error al guardar la firma:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo guardar la firma.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  // ✅ Función mejorada para generar PDF con mejores validaciones
-  const generatePDF = async () => {
+  // Generar documento DOCX
+  const generateDocument = async () => {
     try {
       setIsGenerating(true);
 
-      // ✅ Validación mejorada con return
-      if (!pdfContentRef.current) {
-        toast({
-          title: 'Error',
-          description: 'No se encontró el contenido para generar PDF',
-          variant: 'destructive'
-        });
-        return; // ← Return agregado
-      }
-
-      // ✅ Validar que hay datos del formulario
+      // Validar datos requeridos
       if (!data || !data.inspector?.name) {
         toast({
           title: 'Error',
-          description: 'Faltan datos requeridos para generar el PDF',
+          description: 'Faltan datos requeridos para generar el documento',
           variant: 'destructive'
         });
         return;
       }
 
-      // ✅ Validar que hay firma
-      if (!signatureData) {
+      // Validar nombre para la firma
+      if (!signatureName.trim()) {
         toast({
           title: 'Error',
-          description: 'Por favor, agregue su firma antes de generar el PDF',
+          description: 'Por favor, introduzca el nombre para la firma',
           variant: 'destructive'
         });
         return;
       }
 
-      // ✅ Configuración optimizada de html2canvas
-      const canvas = await html2canvas(pdfContentRef.current, {
-        scale: 2, // Reducido de 1.5 a 2 para mejor calidad
-        useCORS: true,
-        allowTaint: false, // Cambiado a false para evitar problemas
-        backgroundColor: '#ffffff',
-        logging: false,
-        removeContainer: true, // Agregado para limpiar después
-        imageTimeout: 0, // Agregado para evitar timeouts
-        // Removido height y width para usar valores automáticos
-      });
-
-      // ✅ Validar que el canvas se generó correctamente
-      if (!canvas) {
-        throw new Error('No se pudo generar el canvas');
-      }
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      
-      // ✅ Crear PDF con manejo de errores mejorado
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      // ✅ Calcular dimensiones para ajustar la imagen
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-
-      let position = 0;
-
-      // ✅ Agregar la imagen al PDF
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // ✅ Manejar múltiples páginas si es necesario
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      // ✅ Generar nombre de archivo único
-      const fileName = `reporte-inspeccion-${new Date().toISOString().split('T')[0]}-${Date.now()}.pdf`;
-      
-      pdf.save(fileName);
+      await generateDocx(data, signatureName);
 
       toast({
-        title: 'PDF generado',
-        description: `El archivo ${fileName} se ha descargado correctamente.`,
+        title: 'Documento generado',
+        description: `El archivo DOCX se ha descargado correctamente en la carpeta: ${ConfigManager.getRuta()}`,
       });
 
     } catch (error) {
-      console.error('Error al generar PDF:', error);
+      console.error('Error al generar documento:', error);
       toast({
-        title: 'Error al generar PDF',
-        description: error instanceof Error ? error.message : 'Error desconocido al generar el PDF',
+        title: 'Error al generar documento',
+        description: error instanceof Error ? error.message : 'Error desconocido al generar el documento',
         variant: 'destructive'
       });
     } finally {
@@ -221,13 +129,13 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
     }
   };
 
-  // ✅ Función para imprimir con validaciones
+  // Función para imprimir
   const handlePrint = () => {
     try {
-      if (!signatureData) {
+      if (!signatureName.trim()) {
         toast({
           title: 'Error',
-          description: 'Por favor, agregue su firma antes de imprimir',
+          description: 'Por favor, introduzca el nombre para la firma antes de imprimir',
           variant: 'destructive'
         });
         return;
@@ -249,21 +157,30 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Vista previa del Reporte</h2>
         <div className="flex gap-2">
+          {!configLoaded && (
+            <Button 
+              onClick={handleLoadConfig} 
+              variant="outline"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Cargar Config
+            </Button>
+          )}
           <Button 
             onClick={handlePrint} 
             variant="outline"
-            disabled={!signatureData}
+            disabled={!signatureName.trim()}
           >
             <Printer className="w-4 h-4 mr-2" />
             Imprimir
           </Button>
           <Button 
-            onClick={generatePDF} 
-            disabled={isGenerating || !signatureData}
+            onClick={generateDocument} 
+            disabled={isGenerating || !signatureName.trim()}
             className="bg-primary hover:bg-primary/90"
           >
-            <Download className="w-4 h-4 mr-2" />
-            {isGenerating ? 'Generando...' : 'Descargar PDF'}
+            <FileText className="w-4 h-4 mr-2" />
+            {isGenerating ? 'Generando...' : 'Generar DOCX'}
           </Button>
           <Button onClick={onClose} variant="outline">
             Cerrar
@@ -271,10 +188,32 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
         </div>
       </div>
 
-      {/* Contenido del PDF */}
+      {/* Configuración de firma */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Label htmlFor="signature-name">Nombre para la firma:</Label>
+              <Input
+                id="signature-name"
+                value={signatureName}
+                onChange={(e) => setSignatureName(e.target.value)}
+                placeholder="Introduzca el nombre del firmante"
+              />
+            </div>
+            {configLoaded && (
+              <div className="text-sm text-muted-foreground">
+                Carpeta: {ConfigManager.getRuta()}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contenido del documento */}
       <Card>
         <CardContent className="p-8">
-          <div ref={pdfContentRef} className="space-y-8">
+          <div className="space-y-8">
             {/* Header del reporte */}
             <div className="text-center border-b-2 border-gray-800 pb-6">
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
@@ -363,7 +302,8 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                         <img 
                           src={photo.url} 
                           alt={`Inspección ${index + 1}`}
-                          className="max-w-md max-h-64 object-contain border border-gray-300"
+                          className="max-w-full h-auto object-contain border border-gray-300"
+                          style={{ maxHeight: '500px', width: 'auto' }}
                         />
                       </div>
                     </div>
@@ -397,64 +337,16 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
               </div>
             )}
 
-            {/* Área de firma */}
+            {/* Área de firma simplificada */}
             <div className="border-t-2 border-gray-800 pt-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-400 pb-2">FIRMA DE LOS PARTICIPANTES</h2>
               
-              {/* Canvas de firma */}
-              <div className="border border-gray-300 mb-4">
-                <SignatureCanvas
-                  ref={signatureRef}
-                  canvasProps={{
-                    width: 400,
-                    height: 150,
-                    className: 'signature-canvas'
-                  }}
-                  backgroundColor="rgba(255,255,255,1)"
-                />
-              </div>
-
-              {/* Controles de firma */}
-              <div className="flex gap-2 mb-4">
-                <Button onClick={clearSignature} variant="outline" size="sm">
-                  Limpiar Firma
-                </Button>
-                <Button onClick={saveSignature} variant="outline" size="sm">
-                  Guardar Firma
-                </Button>
-              </div>
-
-              {/* Vista previa de la firma guardada */}
-              {signatureData && (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600 mb-2">Firma guardada:</p>
-                  <img 
-                    src={signatureData} 
-                    alt="Firma del inspector" 
-                    className="border border-gray-300 max-w-xs"
-                  />
-                </div>
-              )}
-
-              {/* Tabla de firmas */}
-              <div className="mt-8">
-                <table className="w-full border-collapse border border-gray-400">
-                  <thead>
-                    <tr>
-                      <th className="border border-gray-400 px-4 py-8 w-1/2 text-center font-bold">El Inspector de Seguridad</th>
-                      <th className="border border-gray-400 px-4 py-8 w-1/2 text-center font-bold">El Constructor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-gray-400 px-4 py-8 text-center font-bold">La Dirección de Obra</td>
-                      <td className="border border-gray-400 px-4 py-8 text-center font-bold">La Propiedad</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="mt-4 text-center">
+              <div className="space-y-4">
+                <div className="border border-gray-300 p-6 text-center">
+                  <p className="text-lg font-bold mb-4">Firma de: {signatureName}</p>
+                  <div className="border-b-2 border-gray-400 w-80 mx-auto mb-4" style={{ height: '60px' }}></div>
                   <p className="text-sm text-gray-600">
-                    Firma digital del inspector: {new Date().toLocaleDateString('es-ES')}
+                    Fecha: {new Date().toLocaleDateString('es-ES')}
                   </p>
                 </div>
               </div>

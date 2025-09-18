@@ -1,0 +1,12 @@
+Ruta = "C:\Documentos\Reportes"
+
+# Este es un archivo de ejemplo de configuración
+# El sistema leerá este archivo para saber dónde guardar los reportes generados
+# 
+# Formato:
+# Ruta = "ruta/donde/guardar/archivos"
+# 
+# Ejemplos:
+# Ruta = "C:\Documentos\Reportes"
+# Ruta = "/home/usuario/documentos/reportes"
+# Ruta = "~/Desktop/Reportes"
