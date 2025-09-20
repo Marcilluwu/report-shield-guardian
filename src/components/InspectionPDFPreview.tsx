@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, Printer, Settings, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { generateDocx } from '@/utils/docxGenerator';
+import { usePDFGenerator } from '@/hooks/usePDFgenerator';
+import { useSignature } from '@/hooks/useSingature';
 import { ConfigManager } from '@/utils/configManager';
+import SignatureCanvas from 'react-signature-canvas';
 
 interface Worker {
   id: string;
@@ -70,6 +72,8 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [signatureName, setSignatureName] = useState(data.inspector.name || '');
   const [configLoaded, setConfigLoaded] = useState(ConfigManager.hasConfig());
+  const { generatePDF } = usePDFGenerator();
+  const { signatureRef, signatureData, clearSignature, validateSignature, saveSignature } = useSignature();
 
   // Cargar configuración de ruta
   const handleLoadConfig = async () => {
@@ -89,7 +93,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
     }
   };
 
-  // Generar documento DOCX
+  // Generar documento PDF
   const generateDocument = async () => {
     try {
       setIsGenerating(true);
@@ -114,12 +118,39 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
         return;
       }
 
-      await generateDocx(data, signatureName, logoUrl, selectedFolder);
+      // Obtener datos de la firma
+      if (!signatureData) {
+        toast({
+          title: 'Error',
+          description: 'Por favor, firme el documento antes de generar',
+          variant: 'destructive'
+        });
+        return;
+      }
 
-      toast({
-        title: 'Documento generado',
-        description: `El archivo DOCX se ha descargado correctamente en la carpeta: ${ConfigManager.getRuta()}`,
-      });
+      const folderPrefix = selectedFolder ? `${selectedFolder}_` : '';
+      const fileName = `Inspección_${folderPrefix}${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Obtener referencia al contenido del documento
+      const contentElement = document.getElementById('pdf-content');
+      if (!contentElement) {
+        toast({
+          title: 'Error',
+          description: 'No se pudo encontrar el contenido del documento',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const elementRef = { current: contentElement };
+      const success = await generatePDF(elementRef, { filename: fileName });
+
+      if (success) {
+        toast({
+          title: 'Documento generado',
+          description: `El archivo PDF se ha descargado correctamente`,
+        });
+      }
 
     } catch (error) {
       console.error('Error al generar documento:', error);
@@ -144,6 +175,16 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
         });
         return;
       }
+      
+      if (!signatureData) {
+        toast({
+          title: 'Error',
+          description: 'Por favor, firme el documento antes de imprimir',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       window.print();
     } catch (error) {
       console.error('Error al imprimir:', error);
@@ -184,7 +225,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
             className="bg-primary hover:bg-primary/90"
           >
             <FileText className="w-4 h-4 mr-2" />
-            {isGenerating ? 'Generando...' : 'Generar DOCX'}
+            {isGenerating ? 'Generando...' : 'Generar PDF'}
           </Button>
           <Button onClick={onClose} variant="outline">
             Cerrar
@@ -195,21 +236,59 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       {/* Configuración de firma */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Label htmlFor="signature-name">Nombre para la firma:</Label>
-              <Input
-                id="signature-name"
-                value={signatureName}
-                onChange={(e) => setSignatureName(e.target.value)}
-                placeholder="Introduzca el nombre del firmante"
-              />
-            </div>
-            {configLoaded && (
-              <div className="text-sm text-muted-foreground">
-                Carpeta: {ConfigManager.getRuta()}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label htmlFor="signature-name">Nombre para la firma:</Label>
+                <Input
+                  id="signature-name"
+                  value={signatureName}
+                  onChange={(e) => setSignatureName(e.target.value)}
+                  placeholder="Introduzca el nombre del firmante"
+                />
               </div>
-            )}
+              {configLoaded && (
+                <div className="text-sm text-muted-foreground">
+                  Carpeta: {ConfigManager.getRuta()}
+                </div>
+              )}
+            </div>
+            
+            {/* Panel de firma digital */}
+            <div className="border rounded-lg p-4 bg-muted/50">
+              <div className="flex justify-between items-center mb-3">
+                <Label>Firma Digital:</Label>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={saveSignature} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    Guardar Firma
+                  </Button>
+                  <Button 
+                    onClick={clearSignature} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    Limpiar
+                  </Button>
+                </div>
+              </div>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg">
+                <SignatureCanvas
+                  ref={signatureRef}
+                  canvasProps={{
+                    width: 400,
+                    height: 150,
+                    className: 'signature-canvas w-full h-full'
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Firme en el área de arriba usando su dedo o ratón, luego haga clic en "Guardar Firma"
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -217,7 +296,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       {/* Contenido del documento */}
       <Card>
         <CardContent className="p-8">
-          <div className="space-y-8">
+          <div id="pdf-content" className="space-y-8">
             {/* Header del reporte */}
             <div className="text-center border-b-2 border-gray-800 pb-6">
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
@@ -317,14 +396,24 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
             )}
 
 
-            {/* Área de firma simplificada */}
+            {/* Área de firma con firma digital */}
             <div className="border-t-2 border-gray-800 pt-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-400 pb-2">FIRMA DE LOS PARTICIPANTES</h2>
               
               <div className="space-y-4">
                 <div className="border border-gray-300 p-6 text-center">
                   <p className="text-lg font-bold mb-4">Firma de: {signatureName}</p>
-                  <div className="border-b-2 border-gray-400 w-80 mx-auto mb-4" style={{ height: '60px' }}></div>
+                  <div className="border border-gray-400 w-80 h-20 mx-auto mb-4 bg-white flex items-center justify-center">
+                    {signatureData ? (
+                      <img 
+                        src={signatureData} 
+                        alt="Firma digital" 
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-sm">Área de firma - Use el panel superior para firmar</span>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-600">
                     Fecha: {new Date().toLocaleDateString('es-ES')}
                   </p>
