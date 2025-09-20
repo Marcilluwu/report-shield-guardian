@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Trash2, Upload, Plus, Eye, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { InspectionPDFPreview } from './InspectionPDFPreview';
+import { LogoSelector } from './LogoSelector';
+import { FolderManager } from './FolderManager';
 
 interface Worker {
   id: string;
@@ -67,6 +69,9 @@ const defaultEPIs: EPIItem[] = [
 
 export const SafetyInspectionForm = () => {
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [selectedLogo, setSelectedLogo] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState('');
   const [inspectionData, setInspectionData] = useState<InspectionData>({
     inspector: { name: '', email: '' },
     work: { name: '', location: '', promotingCompany: '' },
@@ -222,7 +227,8 @@ export const SafetyInspectionForm = () => {
                 value={photo.comment}
                 onChange={(e) => updatePhotoComment(photo.id, e.target.value, section)}
                 placeholder="Añadir comentario sobre esta foto..."
-                key={`textarea-${photo.id}`} // Forzar re-render con key única
+                autoFocus={false}
+                onFocus={(e) => e.target.setSelectionRange(e.target.value.length, e.target.value.length)}
               />
             </div>
           </div>
@@ -235,6 +241,8 @@ export const SafetyInspectionForm = () => {
     return (
       <InspectionPDFPreview
         data={inspectionData}
+        logoUrl={logoUrl}
+        selectedFolder={selectedFolder}
         onClose={() => setShowPDFPreview(false)}
       />
     );
@@ -252,10 +260,30 @@ export const SafetyInspectionForm = () => {
           </p>
         </div>
 
+        {/* Logo Selection */}
+        <Card className="shadow-safety">
+          <CardHeader>
+            <CardTitle className="text-primary">1. Selección de Logo y Carpeta</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <LogoSelector
+              selectedLogo={selectedLogo}
+              onLogoChange={(name, url) => {
+                setSelectedLogo(name);
+                setLogoUrl(url);
+              }}
+            />
+            <FolderManager
+              selectedFolder={selectedFolder}
+              onFolderChange={setSelectedFolder}
+            />
+          </CardContent>
+        </Card>
+
         {/* Inspector Info */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">1. Datos del Inspector</CardTitle>
+            <CardTitle className="text-primary">2. Datos del Inspector</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -287,7 +315,7 @@ export const SafetyInspectionForm = () => {
         {/* Work Info */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">2. Datos de la Obra</CardTitle>
+            <CardTitle className="text-primary">3. Datos de la Obra</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -390,7 +418,7 @@ export const SafetyInspectionForm = () => {
         {/* EPIs */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">4. Equipos de Protección Individual</CardTitle>
+            <CardTitle className="text-primary">5. Equipos de Protección Individual</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -417,14 +445,14 @@ export const SafetyInspectionForm = () => {
 
         {/* Work Environment Photos */}
         <PhotoUploadSection
-          title="5. Entorno de la Obra"
+          title="6. Entorno de la Obra"
           photos={inspectionData.workEnvironment.photos}
           section="workEnvironment"
         />
 
         {/* Tools Status Photos */}
         <PhotoUploadSection
-          title="6. Estado de las Herramientas"
+          title="7. Estado de las Herramientas"
           photos={inspectionData.toolsStatus.photos}
           section="toolsStatus"
         />
@@ -432,7 +460,7 @@ export const SafetyInspectionForm = () => {
         {/* Van Status */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">7. Estado de la Furgoneta</CardTitle>
+            <CardTitle className="text-primary">8. Estado de la Furgoneta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -458,7 +486,7 @@ export const SafetyInspectionForm = () => {
         {/* General Observations */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">8. Observaciones Generales</CardTitle>
+            <CardTitle className="text-primary">9. Observaciones Generales</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea

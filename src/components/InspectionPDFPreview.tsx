@@ -56,11 +56,15 @@ interface InspectionData {
 
 interface InspectionPDFPreviewProps {
   data: InspectionData;
+  logoUrl?: string;
+  selectedFolder?: string;
   onClose: () => void;
 }
 
 export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
   data,
+  logoUrl,
+  selectedFolder,
   onClose
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -110,7 +114,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
         return;
       }
 
-      await generateDocx(data, signatureName);
+      await generateDocx(data, signatureName, logoUrl, selectedFolder);
 
       toast({
         title: 'Documento generado',
@@ -312,30 +316,6 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
               </div>
             )}
 
-            {/* Asuntos pendientes */}
-            {data.generalObservations && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">ASUNTOS PENDIENTES</h2>
-                <table className="w-full border-collapse border border-gray-400">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Código</th>
-                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Asunto</th>
-                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Estado</th>
-                      <th className="border border-gray-400 px-3 py-2 text-left font-bold">Responsable</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-gray-400 px-3 py-2">01</td>
-                      <td className="border border-gray-400 px-3 py-2">{data.generalObservations}</td>
-                      <td className="border border-gray-400 px-3 py-2">Pendiente</td>
-                      <td className="border border-gray-400 px-3 py-2">Inspector</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
 
             {/* Área de firma simplificada */}
             <div className="border-t-2 border-gray-800 pt-8">
