@@ -65,50 +65,54 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
 
       setProgress(20);
 
-      // ✅ Capturar el elemento como canvas
-      const canvas = await html2canvas(elementRef.current, getHtml2CanvasConfig(scale));
-      
-      if (!canvas) {
-        throw new Error('No se pudo generar el canvas del documento');
-      }
+      // ¿Existen páginas definidas explícitamente?
+      const container = elementRef.current as HTMLElement;
+      const pageNodes = container.querySelectorAll('.pdf-page');
 
-      setProgress(50);
-
-      // ✅ Obtener datos de la imagen
-      const imgData = canvas.toDataURL('image/png', quality);
-      
-      if (!imgData || imgData === 'data:,') {
-        throw new Error('No se pudieron obtener los datos de la imagen');
-      }
-
-      setProgress(70);
-
-      // ✅ Crear PDF con configuración optimizada
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true,
-      });
-
-      // ✅ Calcular dimensiones manteniendo proporciones
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * pageWidth) / canvas.width;
 
-      let position = 0;
-      let remainingHeight = imgHeight;
+      if (pageNodes.length > 0) {
+        // Generación página a página para evitar cortes de imágenes
+        let first = true;
+        for (const node of Array.from(pageNodes)) {
+          const canvas = await html2canvas(node as HTMLElement, getHtml2CanvasConfig(scale));
+          if (!canvas) throw new Error('No se pudo generar el canvas de una página');
 
-      // ✅ Agregar primera página
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+          const imgData = canvas.toDataURL('image/png', quality);
+          if (!imgData || imgData === 'data:,') throw new Error('No se pudieron obtener los datos de la imagen');
 
-      // ✅ Manejar páginas adicionales si es necesario
-      while (remainingHeight > pageHeight) {
-        remainingHeight -= pageHeight;
-        position = remainingHeight - imgHeight;
-        pdf.addPage();
+          const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+          const imgW = canvas.width * ratio;
+          const imgH = canvas.height * ratio;
+          const offsetX = (pageWidth - imgW) / 2;
+          const offsetY = (pageHeight - imgH) / 2;
+
+          if (!first) pdf.addPage();
+          pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgW, imgH, '', 'FAST');
+          first = false;
+        }
+      } else {
+        // Fallback: una sola captura larga (puede cortar imágenes)
+        const canvas = await html2canvas(container, getHtml2CanvasConfig(scale));
+        if (!canvas) throw new Error('No se pudo generar el canvas del documento');
+
+        const imgData = canvas.toDataURL('image/png', quality);
+        if (!imgData || imgData === 'data:,') throw new Error('No se pudieron obtener los datos de la imagen');
+
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * pageWidth) / canvas.width;
+        let position = 0;
+        let remainingHeight = imgHeight;
+
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+        while (remainingHeight > pageHeight) {
+          remainingHeight -= pageHeight;
+          position = remainingHeight - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+        }
       }
 
       setProgress(90);

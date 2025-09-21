@@ -298,6 +298,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       <Card>
         <CardContent className="p-8">
           <div id="pdf-content" className="space-y-8">
+            <div className="pdf-page space-y-8">
             {/* Header del reporte */}
             <div className="text-center border-b-2 border-gray-800 pb-6">
               {logoUrl && (
@@ -379,54 +380,52 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 </tbody>
               </table>
             </div>
+            </div>
 
             {/* Desarrollo de la inspección */}
             {[...data.workEnvironment.photos, ...data.toolsStatus.photos, ...data.vanStatus.photos].length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">DESARROLLO DE LA INSPECCIÓN</h2>
-                <div className="space-y-6">
-                  {[...data.workEnvironment.photos, ...data.toolsStatus.photos, ...data.vanStatus.photos].map((photo, index) => (
-                    <div key={index} className="space-y-3">
+              <>
+                {[...data.workEnvironment.photos, ...data.toolsStatus.photos, ...data.vanStatus.photos].map((photo, index) => (
+                  <div key={index} className="pdf-page space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">DESARROLLO DE LA INSPECCIÓN</h2>
+                    <div className="space-y-3">
                       <h3 className="text-xl font-bold text-gray-800">
                         {String(index + 1).padStart(2, '0')}.{String(index + 1).padStart(2, '0')}
                       </h3>
                       <p className="text-base">{photo.comment}</p>
                       <div className="flex justify-center">
-                        <img 
-                          src={photo.url} 
+                        <img
+                          src={photo.url}
                           alt={`Inspección ${index + 1}`}
                           className="max-w-full h-auto object-contain border border-gray-300"
-                          style={{ maxHeight: '500px', width: 'auto' }}
+                          style={{ maxHeight: '900px', width: 'auto' }}
                         />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                ))}
+              </>
             )}
 
 
             {/* Área de firma con firma digital */}
-            <div className="border-t-2 border-gray-800 pt-8">
+            <div className="pdf-page border-t-2 border-gray-800 pt-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-400 pb-2">FIRMA DE LOS PARTICIPANTES</h2>
-              
               <div className="space-y-4">
                 <div className="border border-gray-300 p-6 text-center">
                   <p className="text-lg font-bold mb-4">Firma de: {signatureName}</p>
                   <div className="border border-gray-400 w-80 h-20 mx-auto mb-4 bg-white flex items-center justify-center">
                     {signatureData ? (
-                      <img 
-                        src={signatureData} 
-                        alt="Firma digital" 
+                      <img
+                        src={signatureData}
+                        alt="Firma digital"
                         className="max-w-full max-h-full object-contain"
                       />
                     ) : (
                       <span className="text-gray-400 text-sm">_______________________</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Fecha: {new Date().toLocaleDateString('es-ES')}
-                  </p>
+                  <p className="text-sm text-gray-600">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
                 </div>
               </div>
             </div>

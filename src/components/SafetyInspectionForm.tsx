@@ -6,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Upload, Plus, Eye, FileText } from 'lucide-react';
+import { Trash2, Plus, Eye, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { InspectionPDFPreview } from './InspectionPDFPreview';
 import { LogoSelector } from './LogoSelector';
 import { FolderManager } from './FolderManager';
+import { PhotoUploadSection } from '@/components/photos/PhotoUploadSection';
 
 interface Worker {
   id: string;
@@ -173,69 +174,8 @@ export const SafetyInspectionForm = () => {
   };
 
 
-  const PhotoUploadSection = React.memo(({ 
-    title, 
-    photos, 
-    section 
-  }: { 
-    title: string; 
-    photos: PhotoWithComment[]; 
-    section: 'workEnvironment' | 'toolsStatus' | 'vanStatus' 
-  }) => (
-    <Card className="shadow-safety">
-      <CardHeader>
-        <CardTitle className="text-primary">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor={`photos-${section}`} className="cursor-pointer">
-            <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-              <Upload className="mx-auto h-8 w-8 text-primary mb-2" />
-              <p className="text-sm text-muted-foreground">Subir fotos</p>
-            </div>
-          </Label>
-          <Input
-            id={`photos-${section}`}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => handleFileUpload(e.target.files, section)}
-          />
-        </div>
-        
-        {photos.map((photo) => (
-          <div key={photo.id} className="border rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <img
-                src={photo.url}
-                alt="Preview"
-                className="w-20 h-20 object-cover rounded-md"
-              />
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => removePhoto(photo.id, section)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <div>
-              <Label htmlFor={`comment-${photo.id}`}>Comentario</Label>
-              <Textarea
-                id={`comment-${photo.id}`}
-                value={photo.comment}
-                onChange={(e) => updatePhotoComment(photo.id, e.target.value, section)}
-                placeholder="Añadir comentario sobre esta foto..."
-                autoFocus={false}
-                key={photo.id}
-              />
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  ));
+  // Reemplazado por componentes desacoplados para evitar pérdida de foco
+
 
   if (showPDFPreview) {
     return (
@@ -446,15 +386,21 @@ export const SafetyInspectionForm = () => {
         {/* Work Environment Photos */}
         <PhotoUploadSection
           title="6. Entorno de la Obra"
+          inputId="photos-workEnvironment"
           photos={inspectionData.workEnvironment.photos}
-          section="workEnvironment"
+          onUpload={(files) => handleFileUpload(files, 'workEnvironment')}
+          onRemove={(id) => removePhoto(id, 'workEnvironment')}
+          onCommentChange={(id, comment) => updatePhotoComment(id, comment, 'workEnvironment')}
         />
 
         {/* Tools Status Photos */}
         <PhotoUploadSection
           title="7. Estado de las Herramientas"
+          inputId="photos-toolsStatus"
           photos={inspectionData.toolsStatus.photos}
-          section="toolsStatus"
+          onUpload={(files) => handleFileUpload(files, 'toolsStatus')}
+          onRemove={(id) => removePhoto(id, 'toolsStatus')}
+          onCommentChange={(id, comment) => updatePhotoComment(id, comment, 'toolsStatus')}
         />
 
         {/* Van Status */}
@@ -477,8 +423,11 @@ export const SafetyInspectionForm = () => {
             
             <PhotoUploadSection
               title="Fotos de la Furgoneta (cada foto debe incluir un comentario que describa qué aspecto se está inspeccionando)"
+              inputId="photos-vanStatus"
               photos={inspectionData.vanStatus.photos}
-              section="vanStatus"
+              onUpload={(files) => handleFileUpload(files, 'vanStatus')}
+              onRemove={(id) => removePhoto(id, 'vanStatus')}
+              onCommentChange={(id, comment) => updatePhotoComment(id, comment, 'vanStatus')}
             />
           </CardContent>
         </Card>
