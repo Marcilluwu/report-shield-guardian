@@ -228,7 +228,7 @@ export const SafetyInspectionForm = () => {
                 onChange={(e) => updatePhotoComment(photo.id, e.target.value, section)}
                 placeholder="Añadir comentario sobre esta foto..."
                 autoFocus={false}
-                onFocus={(e) => e.target.setSelectionRange(e.target.value.length, e.target.value.length)}
+                key={photo.id}
               />
             </div>
           </div>

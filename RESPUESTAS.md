@@ -1,6 +1,6 @@
-# Respuestas a las consultas
+# Respuestas a las consultas - ACTUALIZADO
 
-## 7. ¿Cómo funciona el placeholder.svg?
+## 7. ✅ ¿Cómo funciona el placeholder.svg?
 
 El archivo `placeholder.svg` es un archivo SVG (Scalable Vector Graphics) que se encuentra en la carpeta `public/`. Se utiliza como imagen de referencia o marcador de posición cuando no hay una imagen real disponible.
 
@@ -15,25 +15,53 @@ El archivo `placeholder.svg` es un archivo SVG (Scalable Vector Graphics) que se
 <img src="/placeholder.svg" alt="Placeholder" />
 ```
 
-## 8. ¿Dónde está el archivo TXT para elegir la ruta de guardado?
+## 8. ✅ ¿Dónde está el archivo TXT para elegir la ruta de guardado?
 
-El archivo de configuración se crea dinámicamente cuando usas el sistema. No existe un archivo físico fijo, sino que funciona así:
+El archivo de configuración se encuentra en la raíz del proyecto como `config-ejemplo.txt`. 
 
-1. **Archivo de ejemplo**: Se ha creado `config-ejemplo.txt` que muestra el formato:
-   ```
-   Ruta = "C:\Reportes"
-   ```
+**Para usarlo:**
+1. Renómbralo a `config.txt` (opcional)
+2. Edita la línea `Ruta = "tu/ruta/aquí"` con la ruta deseada
+3. La aplicación cargará automáticamente esta configuración
 
-2. **Cómo funciona**:
-   - Cuando necesites configurar la ruta, el sistema te pedirá que selecciones un archivo .txt
-   - Puedes usar el archivo de ejemplo o crear tu propio archivo con el mismo formato
-   - El sistema lee la línea que contenga `Ruta = "tu_ruta_aquí"`
-   
-3. **Ubicación**: El archivo puede estar en cualquier parte de tu computadora, ya que el sistema te permite seleccionarlo manualmente
+**Formato esperado:**
+```
+Ruta = "C:\Users\TuUsuario\Documentos\Reportes"
+```
 
-4. **Formato**: El archivo debe ser un .txt simple con la línea:
-   ```
-   Ruta = "C:\tu\carpeta\de\reportes"
-   ```
+## ✅ PROBLEMAS SOLUCIONADOS:
 
-**Nota**: Este sistema permite flexibilidad, ya que cada usuario puede tener su archivo de configuración en su ubicación preferida.
+### 1. Firma digital alineada correctamente
+- **Problema**: El panel de firma estaba desfasado varios pixeles
+- **Solución**: Corregido el CSS del canvas de firma
+
+### 2. Logo visible en el PDF
+- **Problema**: El logo seleccionado no aparecía en el documento
+- **Solución**: Agregado el logo en el header del PDF con visualización correcta
+
+### 3. Sistema de logos funcional
+- **Problema**: Los logos no se guardaban o mostraban correctamente
+- **Solución**: Mejorada la carga, guardado y selección automática de logos PNG
+
+### 4. Comentarios de imágenes sin deselección
+- **Problema**: La caja de texto se deseleccionaba al escribir cada carácter
+- **Solución**: Removido el `onFocus` problemático y mejorada la gestión del estado
+
+### 5. Gestión de carpetas y nombre de archivo
+- **Problema**: Faltaba un sistema para elegir carpetas de destino
+- **Solución**: Sistema completo de FolderManager con formato `Inspección_[Carpeta]_[Fecha].pdf`
+
+## CARACTERÍSTICAS ACTUALES:
+
+### Sistema de Logos:
+- ✅ Sube archivos PNG sin límite de cantidad
+- ✅ Almacenamiento local en el navegador
+- ✅ Selección automática del logo recién subido
+- ✅ Vista previa mejorada del logo seleccionado
+- ✅ Aparición correcta en el header del PDF
+
+### Gestión de Reportes:
+- ✅ Selector de carpetas existentes
+- ✅ Creación de nuevas carpetas
+- ✅ Formato automático del nombre: `Inspección_[Carpeta]_[Fecha].pdf`
+- ✅ Firma digital funcional y alineada

@@ -1,12 +1,30 @@
 Ruta = "C:\Documentos\Reportes"
 
-# Este es un archivo de ejemplo de configuración
-# El sistema leerá este archivo para saber dónde guardar los reportes generados
-# 
-# Formato:
-# Ruta = "ruta/donde/guardar/archivos"
-# 
-# Ejemplos:
-# Ruta = "C:\Documentos\Reportes"
-# Ruta = "/home/usuario/documentos/reportes"
-# Ruta = "~/Desktop/Reportes"
+# Configuración del Sistema de Inspección
+
+## Configuración de Ruta de Guardado
+
+Para configurar dónde se guardan los reportes generados, edita este archivo con el siguiente formato:
+
+```
+Ruta = "C:\Users\TuUsuario\Documentos\Reportes"
+```
+
+**Notas importantes:**
+- Usa barras invertidas dobles (\\) o barras normales (/) en la ruta
+- Asegúrate de que la carpeta existe y tienes permisos de escritura
+- El sistema creará subcarpetas automáticamente según la carpeta seleccionada
+
+## Formato de Archivos Generados
+
+Los archivos se guardan con el formato:
+`Inspección_[Nombre_Carpeta]_[Fecha].pdf`
+
+Ejemplo: `Inspección_Proyecto_ABC_2024-01-15.pdf`
+
+## Configuración de Logos
+
+Los logos se gestionan directamente desde la aplicación:
+1. Sube archivos PNG en la sección "Selección de Logo y Carpeta"
+2. Los logos se almacenan localmente y están disponibles para futuros reportes
+3. Selecciona el logo apropiado para cada empresa/proyecto

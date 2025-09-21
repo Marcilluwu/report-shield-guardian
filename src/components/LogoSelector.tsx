@@ -49,9 +49,12 @@ export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogo
           localStorage.setItem('uploadedLogos', JSON.stringify(updatedLogos));
           setAvailableLogos(updatedLogos);
           
+          // Seleccionar automáticamente el logo recién subido
+          onLogoChange(logoName, logoUrl);
+          
           toast({
             title: 'Logo subido correctamente',
-            description: `${logoName} está disponible para usar`
+            description: `${logoName} está disponible para usar y ha sido seleccionado`
           });
         };
         reader.readAsDataURL(file);
@@ -118,14 +121,17 @@ export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogo
           <Label>Logo seleccionado:</Label>
           <div className="mt-2 p-4 border rounded-lg bg-muted/50">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white rounded border flex items-center justify-center">
+              <div className="w-16 h-16 bg-white rounded border flex items-center justify-center p-2">
                 <img 
                   src={availableLogos.find(l => l.name === selectedLogo)?.url} 
                   alt={selectedLogo}
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
-              <span className="font-medium">{selectedLogo}</span>
+              <div>
+                <span className="font-medium block">{selectedLogo}</span>
+                <span className="text-sm text-muted-foreground">Logo activo para el reporte</span>
+              </div>
             </div>
           </div>
         </div>

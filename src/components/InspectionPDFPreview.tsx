@@ -129,7 +129,8 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       }
 
       const folderPrefix = selectedFolder ? `${selectedFolder}_` : '';
-      const fileName = `Inspección_${folderPrefix}${new Date().toISOString().split('T')[0]}.pdf`;
+      const currentDate = new Date().toISOString().split('T')[0];
+      const fileName = `Inspección_${folderPrefix}${currentDate}.pdf`;
       
       // Obtener referencia al contenido del documento
       const contentElement = document.getElementById('pdf-content');
@@ -275,13 +276,13 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                   </Button>
                 </div>
               </div>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg flex justify-center">
                 <SignatureCanvas
                   ref={signatureRef}
                   canvasProps={{
                     width: 400,
                     height: 150,
-                    className: 'signature-canvas w-full h-full'
+                    className: 'signature-canvas border-0'
                   }}
                 />
               </div>
@@ -299,6 +300,15 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
           <div id="pdf-content" className="space-y-8">
             {/* Header del reporte */}
             <div className="text-center border-b-2 border-gray-800 pb-6">
+              {logoUrl && (
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src={logoUrl} 
+                    alt="Logo de empresa" 
+                    className="max-h-20 w-auto object-contain"
+                  />
+                </div>
+              )}
               <h1 className="text-4xl font-bold text-gray-800 mb-4">
                 ACTA DE INSPECCIÓN DE SEGURIDAD
               </h1>
@@ -411,7 +421,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                         className="max-w-full max-h-full object-contain"
                       />
                     ) : (
-                      <span className="text-gray-400 text-sm">Área de firma - Use el panel superior para firmar</span>
+                      <span className="text-gray-400 text-sm">_______________________</span>
                     )}
                   </div>
                   <p className="text-sm text-gray-600">
