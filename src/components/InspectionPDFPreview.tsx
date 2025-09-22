@@ -299,86 +299,114 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
         <CardContent className="p-8">
           <div id="pdf-content" className="space-y-8">
             <div className="pdf-page space-y-8">
-            {/* Header del reporte */}
-            <div className="text-center border-b-2 border-gray-800 pb-6">
+            {/* Header with logo and title */}
+            <div className="flex items-start justify-between mb-6">
               {logoUrl && (
-                <div className="flex justify-center mb-4">
+                <div className="flex-shrink-0">
                   <img 
                     src={logoUrl} 
-                    alt="Logo de empresa" 
-                    className="max-h-20 w-auto object-contain"
+                    alt="Logo empresa" 
+                    className="h-16 w-auto object-contain"
                   />
                 </div>
               )}
-              <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                ACTA DE INSPECCIÓN DE SEGURIDAD
-              </h1>
-              <div className="text-lg text-gray-700">
-                <p className="mb-2"><strong>FECHA INSPECCIÓN:</strong> {new Date().toLocaleDateString('es-ES')}</p>
-              </div>
-            </div>
-
-            {/* Información del proyecto */}
-            <div className="space-y-4 text-base">
-              <div>
-                <p><strong>PROMOTOR:</strong> {data.work.promotingCompany}</p>
-              </div>
-              <div>
-                <p><strong>PROYECTO:</strong> {data.work.name}</p>
-              </div>
-              <div>
-                <p><strong>EMPLAZAMIENTO:</strong> {data.work.location}</p>
-              </div>
-              <div>
-                <p><strong>INSPECTOR:</strong> {data.inspector.name}</p>
-              </div>
-              <div>
-                <p><strong>EMAIL:</strong> {data.inspector.email}</p>
-              </div>
-            </div>
-
-            {/* Participantes */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">PARTICIPANTES</h2>
-              <div className="space-y-3">
-                <div>
-                  <p><strong>INSPECTOR DE SEGURIDAD:</strong> {data.inspector.name}</p>
+              <div className="flex-1 text-center">
+                <h1 className="text-lg font-bold text-gray-800 mb-2">
+                  ACTA DE INSPECCIÓN DE SEGURIDAD Y SALUD LABORAL
+                </h1>
+                <div className="text-sm text-gray-600">
+                  Equipos de Protección Individual y Condiciones de Trabajo
                 </div>
-                {data.workers.map((worker, index) => (
-                  <div key={index}>
-                    <p><strong>{worker.category.toUpperCase()}:</strong> {worker.name}, {worker.company}</p>
-                    <p className="text-sm text-gray-600 ml-6">DNI: {worker.dni}</p>
-                  </div>
-                ))}
               </div>
             </div>
 
-            {/* Resumen de la inspección */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">RESUMEN DE LA INSPECCIÓN</h2>
-              <p className="mb-4 text-base">Se levanta acta de la inspección de seguridad realizada en la fecha indicada.</p>
-              
-              {/* Tabla de EPIs */}
-              <table className="w-full border-collapse border border-gray-400 mb-6">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">Código</th>
-                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">EPI/Elemento</th>
-                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">Estado</th>
-                    <th className="border border-gray-400 px-3 py-2 text-left font-bold">Responsable</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.episReviewed.map((epi, index) => (
-                    <tr key={index}>
-                      <td className="border border-gray-400 px-3 py-2">{String(index + 1).padStart(2, '0')}</td>
-                      <td className="border border-gray-400 px-3 py-2">{epi.name}</td>
-                      <td className="border border-gray-400 px-3 py-2">{epi.checked ? 'Correcto' : 'Deficiente'}</td>
-                      <td className="border border-gray-400 px-3 py-2">Inspector</td>
+            {/* Document details */}
+            <div className="grid grid-cols-3 gap-4 text-sm mb-6 border-b pb-4">
+              <div><strong>N° Trabajo:</strong> {Math.floor(Math.random() * 1000) + 1}</div>
+              <div><strong>Fecha:</strong> {new Date().toLocaleDateString('es-ES')}</div>
+              <div><strong>Inspector:</strong> {data.inspector.name}</div>
+              <div><strong>Cliente:</strong> {selectedFolder || 'Sin especificar'}</div>
+              <div><strong>Obra:</strong> {data.work.name}</div>
+              <div><strong>Ubicación:</strong> {data.work.location}</div>
+            </div>
+
+            {/* Main inspection table */}
+            <div className="mb-6">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300 text-xs">
+                  <thead>
+                    <tr className="bg-green-600 text-white">
+                      <th className="border border-gray-300 px-2 py-1 text-center">REFERENCIA</th>
+                      <th className="border border-gray-300 px-2 py-1 text-center">MARCA/MODELO</th>
+                      <th className="border border-gray-300 px-2 py-1 text-center">FECHA DE FABRICACIÓN</th>
+                      <th className="border border-gray-300 px-2 py-1 text-center">FECHA PRÓXIMA PRUEBA H.</th>
+                      <th className="border border-gray-300 px-2 py-1 text-center">PRESIÓN TRABAJO</th>
+                      <th className="border border-gray-300 px-2 py-1 text-center">OBSERVACIONES</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {/* Participants rows */}
+                    {data.workers.map((worker, index) => (
+                      <tr key={`worker-${index}`} className="even:bg-gray-50">
+                        <td className="border border-gray-300 px-2 py-1">{`TRAB-${index + 1}`}</td>
+                        <td className="border border-gray-300 px-2 py-1">{worker.name}</td>
+                        <td className="border border-gray-300 px-2 py-1">{new Date().toLocaleDateString('es-ES')}</td>
+                        <td className="border border-gray-300 px-2 py-1">{new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('es-ES')}</td>
+                        <td className="border border-gray-300 px-2 py-1">{worker.category}</td>
+                        <td className="border border-gray-300 px-2 py-1">REVISIÓN</td>
+                      </tr>
+                    ))}
+                    
+                    {/* EPI items rows */}
+                    {data.episReviewed.filter(epi => epi.checked).map((epi, index) => (
+                      <tr key={`epi-${index}`} className="even:bg-gray-50">
+                        <td className="border border-gray-300 px-2 py-1">{`EPI-${index + 1}`}</td>
+                        <td className="border border-gray-300 px-2 py-1">{epi.name}</td>
+                        <td className="border border-gray-300 px-2 py-1">{new Date().toLocaleDateString('es-ES')}</td>
+                        <td className="border border-gray-300 px-2 py-1">{new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('es-ES')}</td>
+                        <td className="border border-gray-300 px-2 py-1">ESTÁNDAR</td>
+                        <td className="border border-gray-300 px-2 py-1">CONFORME</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Summary count */}
+            <div className="mb-6">
+              <p className="text-sm font-semibold">
+                La Presente Acta Consta de {data.workers.length + data.episReviewed.filter(epi => epi.checked).length} ítems
+              </p>
+            </div>
+            {/* Comprobaciones section matching reference format */}
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Comprobaciones Realizadas en Extintores</h2>
+              <div className="grid grid-cols-3 gap-6 text-sm">
+                <div>
+                  <p className="mb-2"><strong>Dispone de manual de uso según se especifica:</strong></p>
+                  <p>Las instrucciones deben especificar como se debe descolgar, quitar seguros o realizar lo que se tenga que hacer para poner en servicio y dirigir el flujo hacia el fuego.</p>
+                  <p><strong>¿En accesible?</strong></p>
+                  <p>El extintor debe estar ubicado de tal forma que sea fácil su utilización por parte de una persona.</p>
+                  <p><strong>¿Se acciona adecuadamente y chorro en buen estado tanto de caudal, de forma directa y con alcance?</strong></p>
+                  <p>Este punto es crítico pues debe poder utilizarse cuando se necesite.</p>
+                </div>
+                <div>
+                  <p className="mb-2">Este es el nivel de carga asignado y es el que requiere el extintor para efectuar su cometido correctamente.</p>
+                  <p className="mb-2">Esta informaciones de manejo en las que se señala y se recomienda mantener el extintor al revés.</p>
+                  <p className="mb-2">Si hay extintores de polvo o nieve, conseguir directamente el movimiento de partículas que se depositarán en el fondo y no en el mecanismo de descarga.</p>
+                  <p className="mb-2">Esta información debe estar bien legible al usuario.</p>
+                  <p className="mb-2">En los equipos que mantengan las válvulas por accionamiento directo, la palanca de servicio deberá accionarse lentamente. Recuerde que un accionamiento brusco y súbito puede provocar el atasco de la válvula.</p>
+                </div>
+                <div>
+                  <p className="mb-2">Una vez asegurado un lugar seguro y el mecanismo adecuado para el fuego de que se trate.</p>
+                  <p className="mb-2">Por el primer aspecto que se examine es el manómetro indicador de presión y chequear que está en zona verde.</p>
+                  <p className="mb-2">Se recomienda el sistema de carga con el mecanismo a tope, comprobando que el sistema funciona correctamente.</p>
+                  <p className="mb-2">Para los extintores de CO2 que no disponen de manómetro se requerirá el pesado del botellín.</p>
+                  <p className="mb-2">Para extintores de tipo ABC se debe comprobar especialmente el estado del alojamiento de polvo, que pueda compactarse y no salir cuando se necesite.</p>
+                  <p className="mb-2">Se recordará el sistema de fácil accesibilidad.</p>
+                </div>
+              </div>
             </div>
             </div>
 

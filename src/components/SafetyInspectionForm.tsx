@@ -155,13 +155,64 @@ export const SafetyInspectionForm = () => {
   };
 
   const removePhoto = (photoId: string, section: 'workEnvironment' | 'toolsStatus' | 'vanStatus') => {
-    setInspectionData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        photos: prev[section].photos.filter(photo => photo.id !== photoId)
+    setInspectionData(prev => {
+      // Find the photo to revoke its blob URL
+      const photoToRemove = prev[section].photos.find(photo => photo.id === photoId);
+      if (photoToRemove && photoToRemove.url.startsWith('blob:')) {
+        URL.revokeObjectURL(photoToRemove.url);
       }
-    }));
+      
+      return {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          photos: prev[section].photos.filter(photo => photo.id !== photoId)
+        }
+      };
+    });
+  };
+
+  const clearAllCache = () => {
+    // Clear all form data
+    setInspectionData({
+      inspector: { name: '', email: '' },
+      work: { name: '', location: '', promotingCompany: '' },
+      workers: [{ id: '1', name: '', dni: '', category: '', company: '' }],
+      episReviewed: defaultEPIs,
+      workEnvironment: { photos: [] },
+      toolsStatus: { photos: [] },
+      vanStatus: { licensePlate: '', photos: [] },
+      generalObservations: ''
+    });
+
+    // Clear logo and folder selection
+    setSelectedLogo('');
+    setLogoUrl('');
+    setSelectedFolder('');
+
+    // Clear localStorage
+    localStorage.removeItem('uploadedLogos');
+    localStorage.removeItem('selectedLogo');
+    localStorage.removeItem('availableFolders');
+    localStorage.removeItem('selectedFolder');
+
+    // Revoke all existing blob URLs
+    const allPhotos = [
+      ...inspectionData.workEnvironment.photos,
+      ...inspectionData.toolsStatus.photos,
+      ...inspectionData.vanStatus.photos
+    ];
+    
+    allPhotos.forEach(photo => {
+      if (photo.url.startsWith('blob:')) {
+        URL.revokeObjectURL(photo.url);
+      }
+    });
+
+    toast({
+      title: "Caché limpiado",
+      description: "Todos los datos del formulario y caché han sido eliminados correctamente.",
+    });
   };
 
   const toggleEPI = (epiId: string) => {
@@ -465,6 +516,15 @@ export const SafetyInspectionForm = () => {
           >
             <FileText className="h-5 w-5 mr-2" />
             Guardar Formulario
+          </Button>
+          <Button
+            onClick={clearAllCache}
+            size="lg"
+            variant="outline"
+            className="border-red-500 text-red-600 hover:bg-red-50 shadow-safety"
+          >
+            <Trash2 className="h-5 w-5 mr-2" />
+            Limpiar Caché
           </Button>
           <Button
             onClick={() => setShowPDFPreview(true)}
