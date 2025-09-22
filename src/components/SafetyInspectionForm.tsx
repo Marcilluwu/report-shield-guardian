@@ -172,6 +172,34 @@ export const SafetyInspectionForm = () => {
     });
   };
 
+  const clearImagesCache = () => {
+    // Revoke all existing blob URLs for photos
+    const allPhotos = [
+      ...inspectionData.workEnvironment.photos,
+      ...inspectionData.toolsStatus.photos,
+      ...inspectionData.vanStatus.photos
+    ];
+    
+    allPhotos.forEach(photo => {
+      if (photo.url.startsWith('blob:')) {
+        URL.revokeObjectURL(photo.url);
+      }
+    });
+
+    // Clear all photos from state
+    setInspectionData(prev => ({
+      ...prev,
+      workEnvironment: { photos: [] },
+      toolsStatus: { photos: [] },
+      vanStatus: { ...prev.vanStatus, photos: [] }
+    }));
+
+    toast({
+      title: "Imágenes eliminadas",
+      description: "Todas las imágenes han sido eliminadas de la caché correctamente.",
+    });
+  };
+
   const clearAllCache = () => {
     // Clear all form data
     setInspectionData({
@@ -524,7 +552,16 @@ export const SafetyInspectionForm = () => {
             className="border-red-500 text-red-600 hover:bg-red-50 shadow-safety"
           >
             <Trash2 className="h-5 w-5 mr-2" />
-            Limpiar Caché
+            Limpiar Todo
+          </Button>
+          <Button
+            onClick={clearImagesCache}
+            size="lg"
+            variant="outline"
+            className="border-orange-500 text-orange-600 hover:bg-orange-50 shadow-safety"
+          >
+            <Trash2 className="h-5 w-5 mr-2" />
+            Solo Imágenes
           </Button>
           <Button
             onClick={() => setShowPDFPreview(true)}
