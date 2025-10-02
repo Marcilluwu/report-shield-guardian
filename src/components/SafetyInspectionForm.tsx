@@ -37,6 +37,12 @@ interface EPIItem {
 }
 
 
+interface VanStatus {
+  id: string;
+  licensePlate: string;
+  photos: PhotoWithComment[];
+}
+
 interface InspectionData {
   inspector: {
     name: string;
@@ -55,10 +61,7 @@ interface InspectionData {
   toolsStatus: {
     photos: PhotoWithComment[];
   };
-  vanStatus: {
-    licensePlate: string;
-    photos: PhotoWithComment[];
-  };
+  vans: VanStatus[];
   generalObservations: string;
 }
 
@@ -86,10 +89,7 @@ export const SafetyInspectionForm = () => {
     episReviewed: defaultEPIs,
     workEnvironment: { photos: [] },
     toolsStatus: { photos: [] },
-    vanStatus: {
-      licensePlate: '',
-      photos: []
-    },
+    vans: [{ id: '1', licensePlate: '', photos: [] }],
     generalObservations: ''
   });
 
@@ -123,7 +123,7 @@ export const SafetyInspectionForm = () => {
     }));
   };
 
-  const handleFileUpload = (files: FileList | null, section: 'workEnvironment' | 'toolsStatus' | 'vanStatus') => {
+  const handleFileUpload = (files: FileList | null, section: 'workEnvironment' | 'toolsStatus', vanId?: string) => {
     if (!files) return;
 
     Array.from(files).forEach(file => {
@@ -136,45 +136,88 @@ export const SafetyInspectionForm = () => {
           url
         };
 
-        setInspectionData(prev => ({
-          ...prev,
-          [section]: {
-            ...prev[section],
-            photos: [...prev[section].photos, newPhoto]
-          }
-        }));
+        if (vanId) {
+          setInspectionData(prev => ({
+            ...prev,
+            vans: prev.vans.map(van =>
+              van.id === vanId
+                ? { ...van, photos: [...van.photos, newPhoto] }
+                : van
+            )
+          }));
+        } else {
+          setInspectionData(prev => ({
+            ...prev,
+            [section]: {
+              ...prev[section],
+              photos: [...prev[section].photos, newPhoto]
+            }
+          }));
+        }
       }
     });
     toast({ title: 'Fotos añadidas correctamente' });
   };
 
-  const updatePhotoComment = (photoId: string, comment: string, section: 'workEnvironment' | 'toolsStatus' | 'vanStatus') => {
-    setInspectionData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        photos: prev[section].photos.map(photo =>
-          photo.id === photoId ? { ...photo, comment } : photo
+  const updatePhotoComment = (photoId: string, comment: string, section: 'workEnvironment' | 'toolsStatus', vanId?: string) => {
+    if (vanId) {
+      setInspectionData(prev => ({
+        ...prev,
+        vans: prev.vans.map(van =>
+          van.id === vanId
+            ? {
+                ...van,
+                photos: van.photos.map(photo =>
+                  photo.id === photoId ? { ...photo, comment } : photo
+                )
+              }
+            : van
         )
-      }
-    }));
-  };
-
-  const removePhoto = (photoId: string, section: 'workEnvironment' | 'toolsStatus' | 'vanStatus') => {
-    setInspectionData(prev => {
-      // Find the photo to revoke its blob URL
-      const photoToRemove = prev[section].photos.find(photo => photo.id === photoId);
-      if (photoToRemove && photoToRemove.url.startsWith('blob:')) {
-        URL.revokeObjectURL(photoToRemove.url);
-      }
-      
-      return {
+      }));
+    } else {
+      setInspectionData(prev => ({
         ...prev,
         [section]: {
           ...prev[section],
-          photos: prev[section].photos.filter(photo => photo.id !== photoId)
+          photos: prev[section].photos.map(photo =>
+            photo.id === photoId ? { ...photo, comment } : photo
+          )
         }
-      };
+      }));
+    }
+  };
+
+  const removePhoto = (photoId: string, section: 'workEnvironment' | 'toolsStatus', vanId?: string) => {
+    setInspectionData(prev => {
+      if (vanId) {
+        const van = prev.vans.find(v => v.id === vanId);
+        const photoToRemove = van?.photos.find(photo => photo.id === photoId);
+        if (photoToRemove && photoToRemove.url.startsWith('blob:')) {
+          URL.revokeObjectURL(photoToRemove.url);
+        }
+        
+        return {
+          ...prev,
+          vans: prev.vans.map(v =>
+            v.id === vanId
+              ? { ...v, photos: v.photos.filter(photo => photo.id !== photoId) }
+              : v
+          )
+        };
+      } else {
+        const photoToRemove = prev[section].photos.find(photo => photo.id === photoId);
+        if (photoToRemove && photoToRemove.url.startsWith('blob:')) {
+          URL.revokeObjectURL(photoToRemove.url);
+        }
+        
+        return {
+          ...prev,
+          [section]: {
+            ...prev[section],
+            photos: prev[section].photos.filter(photo => photo.id !== photoId)
+          }
+        };
+      }
     });
   };
 
@@ -183,7 +226,7 @@ export const SafetyInspectionForm = () => {
     const allPhotos = [
       ...inspectionData.workEnvironment.photos,
       ...inspectionData.toolsStatus.photos,
-      ...inspectionData.vanStatus.photos
+      ...inspectionData.vans.flatMap(van => van.photos)
     ];
     
     allPhotos.forEach(photo => {
@@ -197,7 +240,7 @@ export const SafetyInspectionForm = () => {
       ...prev,
       workEnvironment: { photos: [] },
       toolsStatus: { photos: [] },
-      vanStatus: { ...prev.vanStatus, photos: [] }
+      vans: prev.vans.map(van => ({ ...van, photos: [] }))
     }));
 
     toast({
@@ -215,7 +258,7 @@ export const SafetyInspectionForm = () => {
       episReviewed: defaultEPIs,
       workEnvironment: { photos: [] },
       toolsStatus: { photos: [] },
-      vanStatus: { licensePlate: '', photos: [] },
+      vans: [{ id: '1', licensePlate: '', photos: [] }],
       generalObservations: ''
     });
 
@@ -234,7 +277,7 @@ export const SafetyInspectionForm = () => {
     const allPhotos = [
       ...inspectionData.workEnvironment.photos,
       ...inspectionData.toolsStatus.photos,
-      ...inspectionData.vanStatus.photos
+      ...inspectionData.vans.flatMap(van => van.photos)
     ];
     
     allPhotos.forEach(photo => {
@@ -254,6 +297,44 @@ export const SafetyInspectionForm = () => {
       ...prev,
       episReviewed: prev.episReviewed.map(epi =>
         epi.id === epiId ? { ...epi, checked: !epi.checked } : epi
+      )
+    }));
+  };
+
+  const addVan = () => {
+    const newVan: VanStatus = {
+      id: Date.now().toString(),
+      licensePlate: '',
+      photos: []
+    };
+    setInspectionData(prev => ({
+      ...prev,
+      vans: [...prev.vans, newVan]
+    }));
+  };
+
+  const removeVan = (id: string) => {
+    setInspectionData(prev => {
+      const van = prev.vans.find(v => v.id === id);
+      if (van) {
+        van.photos.forEach(photo => {
+          if (photo.url.startsWith('blob:')) {
+            URL.revokeObjectURL(photo.url);
+          }
+        });
+      }
+      return {
+        ...prev,
+        vans: prev.vans.filter(v => v.id !== id)
+      };
+    });
+  };
+
+  const updateVanLicensePlate = (id: string, licensePlate: string) => {
+    setInspectionData(prev => ({
+      ...prev,
+      vans: prev.vans.map(van =>
+        van.id === id ? { ...van, licensePlate } : van
       )
     }));
   };
@@ -360,7 +441,7 @@ export const SafetyInspectionForm = () => {
         {/* Logo Selection */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">1. Selección de Logo y Carpeta</CardTitle>
+            <CardTitle className="text-primary">Selección de Logo y Carpeta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <LogoSelector
@@ -380,11 +461,44 @@ export const SafetyInspectionForm = () => {
         {/* Inspector Info */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">2. Datos del Inspector</CardTitle>
+            <CardTitle className="text-primary">1. Datos de la Inspección</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="inspector-name">Nombre completo</Label>
+              <Label htmlFor="promoting-company">Promotor</Label>
+              <Input
+                id="promoting-company"
+                value={inspectionData.work.promotingCompany}
+                onChange={(e) => setInspectionData(prev => ({
+                  ...prev,
+                  work: { ...prev.work, promotingCompany: e.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="work-name">Proyecto</Label>
+              <Input
+                id="work-name"
+                value={inspectionData.work.name}
+                onChange={(e) => setInspectionData(prev => ({
+                  ...prev,
+                  work: { ...prev.work, name: e.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="work-location">Emplazamiento</Label>
+              <Input
+                id="work-location"
+                value={inspectionData.work.location}
+                onChange={(e) => setInspectionData(prev => ({
+                  ...prev,
+                  work: { ...prev.work, location: e.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="inspector-name">Inspector</Label>
               <Input
                 id="inspector-name"
                 value={inspectionData.inspector.name}
@@ -395,7 +509,7 @@ export const SafetyInspectionForm = () => {
               />
             </div>
             <div>
-              <Label htmlFor="inspector-email">Email</Label>
+              <Label htmlFor="inspector-email">Email del Inspector</Label>
               <Input
                 id="inspector-email"
                 type="email"
@@ -409,53 +523,11 @@ export const SafetyInspectionForm = () => {
           </CardContent>
         </Card>
 
-        {/* Work Info */}
-        <Card className="shadow-safety">
-          <CardHeader>
-            <CardTitle className="text-primary">3. Datos de la Obra</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="work-name">Nombre de la obra</Label>
-              <Input
-                id="work-name"
-                value={inspectionData.work.name}
-                onChange={(e) => setInspectionData(prev => ({
-                  ...prev,
-                  work: { ...prev.work, name: e.target.value }
-                }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="work-location">Ubicación</Label>
-              <Input
-                id="work-location"
-                value={inspectionData.work.location}
-                onChange={(e) => setInspectionData(prev => ({
-                  ...prev,
-                  work: { ...prev.work, location: e.target.value }
-                }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="promoting-company">Empresa Promotora</Label>
-              <Input
-                id="promoting-company"
-                value={inspectionData.work.promotingCompany}
-                onChange={(e) => setInspectionData(prev => ({
-                  ...prev,
-                  work: { ...prev.work, promotingCompany: e.target.value }
-                }))}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Workers */}
         <Card className="shadow-safety">
           <CardHeader>
             <CardTitle className="text-primary flex items-center justify-between">
-              3. Operarios en la Obra
+              2. Participantes
               <Button onClick={addWorker} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Añadir Operario
@@ -515,7 +587,7 @@ export const SafetyInspectionForm = () => {
         {/* EPIs */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">5. Equipos de Protección Individual</CardTitle>
+            <CardTitle className="text-primary">3. Resumen de las EPIS inspeccionadas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -542,7 +614,7 @@ export const SafetyInspectionForm = () => {
 
         {/* Work Environment Photos */}
         <PhotoUploadSection
-          title="6. Entorno de la Obra"
+          title="4. Entorno de la Obra"
           inputId="photos-workEnvironment"
           photos={inspectionData.workEnvironment.photos}
           onUpload={(files) => handleFileUpload(files, 'workEnvironment')}
@@ -552,7 +624,7 @@ export const SafetyInspectionForm = () => {
 
         {/* Tools Status Photos */}
         <PhotoUploadSection
-          title="7. Estado de las Herramientas"
+          title="5. Estado de las Herramientas"
           inputId="photos-toolsStatus"
           photos={inspectionData.toolsStatus.photos}
           onUpload={(files) => handleFileUpload(files, 'toolsStatus')}
@@ -560,32 +632,51 @@ export const SafetyInspectionForm = () => {
           onCommentChange={(id, comment) => updatePhotoComment(id, comment, 'toolsStatus')}
         />
 
-        {/* Van Status */}
+        {/* Vans Status - Multiple */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">8. Estado de la Furgoneta</CardTitle>
+            <CardTitle className="text-primary flex items-center justify-between">
+              6. Estado de las Furgonetas
+              <Button onClick={addVan} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Añadir Furgoneta
+              </Button>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div>
-              <Label htmlFor="license-plate">Matrícula</Label>
-              <Input
-                id="license-plate"
-                value={inspectionData.vanStatus.licensePlate}
-                onChange={(e) => setInspectionData(prev => ({
-                  ...prev,
-                  vanStatus: { ...prev.vanStatus, licensePlate: e.target.value }
-                }))}
-              />
-            </div>
-            
-            <PhotoUploadSection
-              title="Fotos de la Furgoneta (cada foto debe incluir un comentario que describa qué aspecto se está inspeccionando)"
-              inputId="photos-vanStatus"
-              photos={inspectionData.vanStatus.photos}
-              onUpload={(files) => handleFileUpload(files, 'vanStatus')}
-              onRemove={(id) => removePhoto(id, 'vanStatus')}
-              onCommentChange={(id, comment) => updatePhotoComment(id, comment, 'vanStatus')}
-            />
+            {inspectionData.vans.map((van, index) => (
+              <div key={van.id} className="border rounded-lg p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold">Furgoneta #{index + 1}</h4>
+                  {inspectionData.vans.length > 1 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeVan(van.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor={`license-plate-${van.id}`}>Matrícula</Label>
+                  <Input
+                    id={`license-plate-${van.id}`}
+                    value={van.licensePlate}
+                    onChange={(e) => updateVanLicensePlate(van.id, e.target.value)}
+                  />
+                </div>
+                
+                <PhotoUploadSection
+                  title="Fotos de la Furgoneta"
+                  inputId={`photos-van-${van.id}`}
+                  photos={van.photos}
+                  onUpload={(files) => handleFileUpload(files, 'workEnvironment', van.id)}
+                  onRemove={(id) => removePhoto(id, 'workEnvironment', van.id)}
+                  onCommentChange={(id, comment) => updatePhotoComment(id, comment, 'workEnvironment', van.id)}
+                />
+              </div>
+            ))}
           </CardContent>
         </Card>
 

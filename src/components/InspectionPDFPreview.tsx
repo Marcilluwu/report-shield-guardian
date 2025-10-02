@@ -31,6 +31,12 @@ interface PhotoWithComment {
   url: string;
 }
 
+interface VanStatus {
+  id: string;
+  licensePlate: string;
+  photos: PhotoWithComment[];
+}
+
 interface InspectionData {
   inspector: {
     name: string;
@@ -49,10 +55,7 @@ interface InspectionData {
   toolsStatus: {
     photos: PhotoWithComment[];
   };
-  vanStatus: {
-    licensePlate: string;
-    photos: PhotoWithComment[];
-  };
+  vans: VanStatus[];
   generalObservations: string;
 }
 
@@ -297,176 +300,186 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       {/* Contenido del documento */}
       <Card>
         <CardContent className="p-8">
-          <div id="pdf-content" className="space-y-6">
-            <div className="pdf-page space-y-6">
-              {/* Header with logo and title matching reference format */}
-              <div className="flex items-start justify-between mb-8">
+          <div id="pdf-content" className="space-y-4">
+            <div className="pdf-page space-y-4" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4', padding: '15mm' }}>
+              {/* Header with logo and green title */}
+              <div className="flex items-start gap-4 mb-4">
                 {logoUrl && (
                   <div className="flex-shrink-0">
                     <img 
                       src={logoUrl} 
                       alt="Logo empresa" 
-                      className="h-12 w-auto object-contain"
+                      className="h-16 w-auto object-contain"
                     />
                   </div>
                 )}
-                <div className="flex-1 text-center">
-                  <h1 className="text-xl font-bold text-gray-800 mb-2">
-                    Acta de Revisión, Pruebas Hidrostáticas y Recargas de Equipos
+                <div className="flex-1">
+                  <h1 style={{ fontSize: '16px', fontWeight: 'bold', color: '#4a7c59', marginBottom: '2px', lineHeight: '1.3' }}>
+                    Acta de Revisión, Pruebas Hidrostáticas y Recargas de Equipos Contraincendios
                   </h1>
-                  <h2 className="text-lg font-bold text-gray-800">
-                    Contraincendios
-                  </h2>
                 </div>
               </div>
 
-              {/* Document details in compact format */}
-              <div className="grid grid-cols-3 gap-4 text-sm mb-6">
-                <div><strong>N° Trabajo:</strong> {Math.floor(Math.random() * 1000) + 1}</div>
-                <div><strong>Albañil Cliente Modificado por Motor Plaza:</strong></div>
-                <div><strong>Código file # :</strong></div>
+              {/* Document details */}
+              <div style={{ fontSize: '10px', marginBottom: '8px', lineHeight: '1.3' }}>
+                <div><strong>N° Cliente: 322.1</strong></div>
+                <div><strong>Cliente Modificado por Mateo Plaza</strong></div>
+                <div><strong>C/Núñez 16, 2° 2'</strong></div>
                 <div><strong>Fecha:</strong> {new Date().toLocaleDateString('es-ES')}</div>
               </div>
 
-              {/* Information sections */}
-              <div className="space-y-4 text-sm mb-6">
-                <div>
-                  <p><strong>PROMOTOR:</strong> {data.work.promotingCompany}</p>
-                </div>
-                <div>
-                  <p><strong>PROYECTO:</strong> {data.work.name}</p>
-                </div>
-                <div>
-                  <p><strong>EMPLAZAMIENTO:</strong> {data.work.location}</p>
-                </div>
-                <div>
-                  <p><strong>INSPECTOR:</strong> {data.inspector.name}</p>
-                </div>
-                <div>
-                  <p><strong>EMAIL:</strong> {data.inspector.email}</p>
-                </div>
+              {/* Green table header */}
+              <div className="overflow-x-auto mb-4">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px' }}>
+                  <thead style={{ backgroundColor: '#4a7c59', color: 'white' }}>
+                    <tr>
+                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>TIPO DE EXTINTOR</th>
+                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>Nº DE PLACA</th>
+                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>MARCA/MODELO</th>
+                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>FECHA DE FABRICACIÓN</th>
+                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>FECHA PRUEBA HIDRÁULICA</th>
+                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>TRABAJO REALIZADO</th>
+                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>ANOTACIONES</th>
+                    </tr>
+                  </thead>
+                  <tbody style={{ backgroundColor: 'white' }}>
+                    {data.episReviewed.filter(epi => epi.checked).map((epi, index) => (
+                      <tr key={index}>
+                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>{epi.name}</td>
+                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
+                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
+                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
+                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
+                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>REVISIÓN</td>
+                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Information sections - compact */}
+              <div style={{ fontSize: '10px', marginBottom: '12px', lineHeight: '1.5' }}>
+                <p><strong>PROMOTOR:</strong> {data.work.promotingCompany}</p>
+                <p><strong>PROYECTO:</strong> {data.work.name}</p>
+                <p><strong>EMPLAZAMIENTO:</strong> {data.work.location}</p>
+                <p><strong>INSPECTOR:</strong> {data.inspector.name}</p>
+                <p><strong>EMAIL:</strong> {data.inspector.email}</p>
               </div>
 
               {/* Participants */}
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-3 text-gray-800">Participantes en la Inspección</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">Nombre</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">Puesto</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">Empresa</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.workers.map((worker, index) => (
-                        <tr key={index}>
-                          <td className="border border-gray-300 px-3 py-2">{worker.name}</td>
-                          <td className="border border-gray-300 px-3 py-2">{worker.category}</td>
-                          <td className="border border-gray-300 px-3 py-2">{worker.company}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {data.workers.length > 0 && (
+                <div className="mb-4">
+                  <h2 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', color: '#333' }}>2. Participantes</h2>
+                  <div className="space-y-2">
+                    {data.workers.map((worker, index) => (
+                      <div key={index} style={{ fontSize: '10px' }}>
+                        <strong>Operario {index + 1}:</strong> {worker.name}, {worker.company}, DNI: {worker.dni}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* EPI Summary */}
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-3 text-gray-800">Equipos de Protección Individual Revisados</h2>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {data.episReviewed.filter(epi => epi.checked).map((epi, index) => (
-                    <div key={index} className="flex items-center">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      {epi.name}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Summary count */}
-              <div className="mb-6">
-                <p className="text-sm font-semibold">
-                  La Presente Acta Consta de {data.workers.length + data.episReviewed.filter(epi => epi.checked).length} ítems
-                </p>
-              </div>
-
-              {/* Comprobaciones section matching reference format */}
-              <div className="mb-6">
-                <h2 className="text-lg font-bold text-gray-800 mb-4">Comprobaciones Realizadas en Extintores</h2>
-                <div className="grid grid-cols-3 gap-6 text-sm">
-                  <div>
-                    <p className="mb-2"><strong>Dispone de manual de uso según se especifica:</strong></p>
-                    <p>Las instrucciones deben especificar como se debe descolgar, quitar seguros o realizar lo que se tenga que hacer para poner en servicio y dirigir el flujo hacia el fuego.</p>
-                    <p><strong>¿En accesible?</strong></p>
-                    <p>El extintor debe estar ubicado de tal forma que sea fácil su utilización por parte de una persona.</p>
-                    <p><strong>¿Se acciona adecuadamente y chorro en buen estado tanto de caudal, de forma directa y con alcance?</strong></p>
-                    <p>Este punto es crítico pues debe poder utilizarse cuando se necesite.</p>
-                  </div>
-                  <div>
-                    <p className="mb-2">Este es el nivel de carga asignado y es el que requiere el extintor para efectuar su cometido correctamente.</p>
-                    <p className="mb-2">Esta informaciones de manejo en las que se señala y se recomienda mantener el extintor al revés.</p>
-                    <p className="mb-2">Si hay extintores de polvo o nieve, conseguir directamente el movimiento de partículas que se depositarán en el fondo y no en el mecanismo de descarga.</p>
-                    <p className="mb-2">Esta información debe estar bien legible al usuario.</p>
-                    <p className="mb-2">En los equipos que mantengan las válvulas por accionamiento directo, la palanca de servicio deberá accionarse lentamente. Recuerde que un accionamiento brusco y súbito puede provocar el atasco de la válvula.</p>
-                  </div>
-                  <div>
-                    <p className="mb-2">Una vez asegurado un lugar seguro y el mecanismo adecuado para el fuego de que se trate.</p>
-                    <p className="mb-2">Por el primer aspecto que se examine es el manómetro indicador de presión y chequear que está en zona verde.</p>
-                    <p className="mb-2">Se recomienda el sistema de carga con el mecanismo a tope, comprobando que el sistema funciona correctamente.</p>
-                    <p className="mb-2">Para los extintores de CO2 que no disponen de manómetro se requerirá el pesado del botellín.</p>
-                    <p className="mb-2">Para extintores de tipo ABC se debe comprobar especialmente el estado del alojamiento de polvo, que pueda compactarse y no salir cuando se necesite.</p>
-                    <p className="mb-2">Se recordará el sistema de fácil accesibilidad.</p>
-                  </div>
+              {/* Comprobaciones section */}
+              <div className="mb-4">
+                <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#333', textAlign: 'center' }}>
+                  Comprobaciones Realizadas en Extintores
+                </h2>
+                <div style={{ fontSize: '9px', lineHeight: '1.4', columnCount: 3, columnGap: '15px' }}>
+                  <p style={{ marginBottom: '6px' }}>Dispone de mercado CE como equipo a presión según reglamento de desarrollo CE como nivel riesgos desde todos los frentes de ataque comprendidos en zonas de uso.</p>
+                  <p style={{ marginBottom: '6px' }}><strong>¿Es accesible?</strong></p>
+                  <p style={{ marginBottom: '6px' }}>La unidad inspeccionada está ubicada de tal forma que resultó fácil su descolgado y uso rápido cuando una persona necesitó alcanzar el proyecto desde todos.</p>
+                  <p style={{ marginBottom: '6px' }}>Se nos indica el del estándar tal tanto de recorrido desde todos y también si cuenta mantenimiento vigente al mes pero específicamente al entorno proyectados al efecto.</p>
+                  <p style={{ marginBottom: '6px' }}>Los niveles y sistemas mantenidos adecuados y legibles. Las herramientas fáciles acceso al operario a nivel recorrido y seguridad del proyecto.</p>
+                  <p style={{ marginBottom: '6px' }}>Si en cierto sistema CO₂ con mecanismo bien dispuesto al ambiente según necesidad del fuego de que a efecto.</p>
                 </div>
               </div>
             </div>
 
-            {/* Desarrollo de la inspección */}
-            {[...data.workEnvironment.photos, ...data.toolsStatus.photos, ...data.vanStatus.photos].length > 0 && (
-              <>
-                {[...data.workEnvironment.photos, ...data.toolsStatus.photos, ...data.vanStatus.photos].map((photo, index) => (
-                  <div key={index} className="pdf-page space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-400 pb-2">DESARROLLO DE LA INSPECCIÓN</h2>
-                    <div className="space-y-3">
-                      <h3 className="text-xl font-bold text-gray-800">
-                        {String(index + 1).padStart(2, '0')}.{String(index + 1).padStart(2, '0')}
-                      </h3>
-                      <p className="text-base">{photo.comment}</p>
-                      <div className="flex justify-center">
-                        <img
-                          src={photo.url}
-                          alt={`Inspección ${index + 1}`}
-                          className="max-w-full h-auto object-contain border border-gray-300"
-                          style={{ maxHeight: '900px', width: 'auto' }}
-                        />
-                      </div>
+            {/* Work Environment Photos */}
+            {data.workEnvironment.photos.length > 0 && (
+              <div className="pdf-page" style={{ padding: '15mm' }}>
+                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>4. Entorno de la Obra</h2>
+                {data.workEnvironment.photos.map((photo, index) => (
+                  <div key={index} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
+                    <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Comentario {index + 1}:</strong> {photo.comment}</p>
+                    <div style={{ textAlign: 'center' }}>
+                      <img
+                        src={photo.url}
+                        alt={`Entorno ${index + 1}`}
+                        style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain', border: '1px solid #ddd' }}
+                      />
                     </div>
                   </div>
                 ))}
-              </>
+              </div>
             )}
 
-            {/* Área de firma con firma digital */}
-            <div className="pdf-page border-t-2 border-gray-800 pt-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-400 pb-2">FIRMA DE LOS PARTICIPANTES</h2>
-              <div className="space-y-4">
-                <div className="border border-gray-300 p-6 text-center">
-                  <p className="text-lg font-bold mb-4">Firma de: {signatureName}</p>
-                  <div className="border border-gray-400 w-80 h-20 mx-auto mb-4 bg-white flex items-center justify-center">
-                    {signatureData ? (
+            {/* Tools Status Photos */}
+            {data.toolsStatus.photos.length > 0 && (
+              <div className="pdf-page" style={{ padding: '15mm' }}>
+                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>5. Estado de las Herramientas</h2>
+                {data.toolsStatus.photos.map((photo, index) => (
+                  <div key={index} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
+                    <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Comentario {index + 1}:</strong> {photo.comment}</p>
+                    <div style={{ textAlign: 'center' }}>
                       <img
-                        src={signatureData}
-                        alt="Firma digital"
-                        className="max-w-full max-h-full object-contain"
+                        src={photo.url}
+                        alt={`Herramienta ${index + 1}`}
+                        style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain', border: '1px solid #ddd' }}
                       />
-                    ) : (
-                      <span className="text-gray-400 text-sm">_______________________</span>
-                    )}
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Vans Status - Grouped by License Plate */}
+            {data.vans.length > 0 && data.vans.some(van => van.photos.length > 0) && (
+              <div className="pdf-page" style={{ padding: '15mm' }}>
+                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>6. Estado de las Furgonetas</h2>
+                {data.vans.map((van, vanIndex) => (
+                  van.photos.length > 0 && (
+                    <div key={van.id} style={{ marginBottom: '20px' }}>
+                      <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+                        Matrícula de la furgoneta {vanIndex + 1}: {van.licensePlate || 'Sin especificar'}
+                      </h3>
+                      {van.photos.map((photo, photoIndex) => (
+                        <div key={photo.id} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
+                          <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Comentario {photoIndex + 1}:</strong> {photo.comment}</p>
+                          <div style={{ textAlign: 'center' }}>
+                            <img
+                              src={photo.url}
+                              alt={`Furgoneta ${vanIndex + 1} - Foto ${photoIndex + 1}`}
+                              style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain', border: '1px solid #ddd' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+
+            {/* Signature section */}
+            <div className="pdf-page" style={{ padding: '15mm', borderTop: '2px solid #4a7c59', paddingTop: '20px' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '15px', color: '#4a7c59' }}>FIRMA DE LOS PARTICIPANTES</h2>
+              <div style={{ border: '1px solid #ddd', padding: '20px', textAlign: 'center' }}>
+                <p style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '15px' }}>Firma de: {signatureName}</p>
+                <div style={{ border: '1px solid #999', width: '320px', height: '80px', margin: '0 auto 15px', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {signatureData ? (
+                    <img
+                      src={signatureData}
+                      alt="Firma digital"
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <span style={{ color: '#999', fontSize: '11px' }}>_______________________</span>
+                  )}
                 </div>
+                <p style={{ fontSize: '10px', color: '#666' }}>Fecha: {new Date().toLocaleDateString('es-ES')}</p>
               </div>
             </div>
           </div>
