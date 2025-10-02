@@ -6,12 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Eye, FileText } from 'lucide-react';
+import { Trash2, Plus, Eye, FileText, Wifi, WifiOff, RefreshCw, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { InspectionPDFPreview } from './InspectionPDFPreview';
 import { LogoSelector } from './LogoSelector';
 import { FolderManager } from './FolderManager';
 import { PhotoUploadSection } from '@/components/photos/PhotoUploadSection';
+import { useOfflineForm } from '@/hooks/useOfflineForm';
+import { OfflineQueueStatus } from './OfflineQueueStatus';
 
 interface Worker {
   id: string;
@@ -73,6 +75,10 @@ export const SafetyInspectionForm = () => {
   const [selectedLogo, setSelectedLogo] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('');
+  
+  // ✅ Hook Offline-First
+  const { isOnline, pendingCount, submitForm, retrySync } = useOfflineForm();
+  
   const [inspectionData, setInspectionData] = useState<InspectionData>({
     inspector: { name: '', email: '' },
     work: { name: '', location: '', promotingCompany: '' },
@@ -252,8 +258,38 @@ export const SafetyInspectionForm = () => {
     }));
   };
 
+  // =====================================================
+  // GUARDAR FORMULARIO CON SOPORTE OFFLINE
+  // =====================================================
+  
+  const handleSaveForm = async () => {
+    try {
+      const result = await submitForm(
+        '/api/inspections',
+        {
+          ...inspectionData,
+          logo: logoUrl,
+          folder: selectedFolder,
+          submittedAt: new Date().toISOString()
+        },
+        'POST'
+      );
 
-  // Reemplazado por componentes desacoplados para evitar pérdida de foco
+      if (result.queued) {
+        toast({
+          title: '💾 Formulario guardado localmente',
+          description: `Se sincronizará automáticamente cuando haya conexión. (${pendingCount + 1} pendientes)`,
+        });
+      } else {
+        toast({
+          title: '✅ Formulario guardado',
+          description: 'Los datos se han enviado correctamente al servidor.',
+        });
+      }
+    } catch (error) {
+      console.error('Error al guardar formulario:', error);
+    }
+  };
 
 
   if (showPDFPreview) {
@@ -277,7 +313,49 @@ export const SafetyInspectionForm = () => {
           <p className="text-muted-foreground">
             Sistema de inspección de elementos de seguridad personal
           </p>
+          
+          {/* Indicador de Estado de Conexión y Cola */}
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <Badge 
+              variant={isOnline ? "default" : "destructive"}
+              className="flex items-center gap-2 px-4 py-2"
+            >
+              {isOnline ? (
+                <>
+                  <Wifi className="h-4 w-4" />
+                  Conectado
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4" />
+                  Sin conexión
+                </>
+              )}
+            </Badge>
+            
+            {pendingCount > 0 && (
+              <Badge variant="secondary" className="flex items-center gap-2 px-4 py-2">
+                <RefreshCw className="h-4 w-4" />
+                {pendingCount} pendiente{pendingCount > 1 ? 's' : ''}
+              </Badge>
+            )}
+            
+            {pendingCount > 0 && isOnline && (
+              <Button
+                onClick={retrySync}
+                size="sm"
+                variant="outline"
+                className="text-xs"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Sincronizar
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Estado de la Cola Offline */}
+        <OfflineQueueStatus />
 
         {/* Logo Selection */}
         <Card className="shadow-safety">
@@ -532,17 +610,12 @@ export const SafetyInspectionForm = () => {
         {/* Submit and Generate PDF Buttons */}
         <div className="flex justify-center gap-4 pb-8">
           <Button
-            onClick={() => {
-              toast({ 
-                title: 'Formulario guardado', 
-                description: 'Los datos han sido guardados correctamente' 
-              });
-            }}
+            onClick={handleSaveForm}
             size="lg"
             variant="outline"
             className="shadow-safety"
           >
-            <FileText className="h-5 w-5 mr-2" />
+            <Save className="h-5 w-5 mr-2" />
             Guardar Formulario
           </Button>
           <Button
