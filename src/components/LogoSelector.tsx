@@ -4,6 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Upload, Image as ImageIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
+import { FileSystemStorage } from '@/utils/fileSystemStorage';
+import { ConfigManager } from '@/utils/configManager';
 
 interface LogoSelectorProps {
   selectedLogo: string;
@@ -29,35 +31,63 @@ export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogo
     loadLogos();
   }, []);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file) => {
+    for (const file of Array.from(files)) {
       if (file.type === 'image/png') {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const logoName = file.name.replace('.png', '');
-          const logoUrl = e.target?.result as string;
-          
-          // Guardar en localStorage (en producción sería una API)
-          const existingLogos = JSON.parse(localStorage.getItem('uploadedLogos') || '[]');
-          const newLogo = { name: logoName, url: logoUrl };
-          const updatedLogos = existingLogos.filter((logo: any) => logo.name !== logoName);
-          updatedLogos.push(newLogo);
-          
-          localStorage.setItem('uploadedLogos', JSON.stringify(updatedLogos));
-          setAvailableLogos(updatedLogos);
-          
-          // Seleccionar automáticamente el logo recién subido
-          onLogoChange(logoName, logoUrl);
-          
-          toast({
-            title: 'Logo subido correctamente',
-            description: `${logoName} está disponible para usar y ha sido seleccionado`
+        try {
+          const reader = new FileReader();
+          await new Promise<void>((resolve, reject) => {
+            reader.onload = async (e) => {
+              try {
+                const logoName = file.name.replace('.png', '');
+                const logoUrl = e.target?.result as string;
+                
+                // Intentar guardar en File System si está disponible
+                if (ConfigManager.isUsingFileSystemAPI()) {
+                  const blob = await fetch(logoUrl).then(r => r.blob());
+                  const saved = await FileSystemStorage.saveLogo(blob, file.name);
+                  
+                  if (saved) {
+                    console.log(`Logo guardado en Logos/${file.name}`);
+                  }
+                }
+                
+                // Guardar también en localStorage para referencia rápida
+                const existingLogos = JSON.parse(localStorage.getItem('uploadedLogos') || '[]');
+                const newLogo = { name: logoName, url: logoUrl };
+                const updatedLogos = existingLogos.filter((logo: any) => logo.name !== logoName);
+                updatedLogos.push(newLogo);
+                
+                localStorage.setItem('uploadedLogos', JSON.stringify(updatedLogos));
+                setAvailableLogos(updatedLogos);
+                
+                // Seleccionar automáticamente el logo recién subido
+                onLogoChange(logoName, logoUrl);
+                
+                toast({
+                  title: 'Logo guardado correctamente',
+                  description: `${logoName} está disponible para usar`
+                });
+                
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
           });
-        };
-        reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('Error guardando logo:', error);
+          toast({
+            title: 'Error al guardar logo',
+            description: 'No se pudo guardar el logo en el sistema',
+            variant: 'destructive'
+          });
+        }
       } else {
         toast({
           title: 'Formato no válido',
@@ -65,7 +95,7 @@ export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogo
           variant: 'destructive'
         });
       }
-    });
+    }
     
     // Limpiar el input
     event.target.value = '';

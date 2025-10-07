@@ -1,15 +1,18 @@
 // hooks/usePDFGenerator.ts
 // ✅ Hook personalizado para generar PDFs de manera robusta
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toast } from '@/hooks/use-toast';
+import { FileSystemStorage } from '@/utils/fileSystemStorage';
+import { ConfigManager } from '@/utils/configManager';
 
 interface PDFGenerationOptions {
   filename?: string;
   quality?: number;
   scale?: number;
+  projectFolder?: string; // Carpeta del proyecto dentro de "docs generated/"
 }
 
 interface UsePDFGeneratorReturn {
@@ -117,7 +120,27 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
 
       setProgress(90);
 
-      // ✅ Guardar el PDF
+      // ✅ Intentar guardar usando File System Access API
+      const blob = pdf.output('blob');
+      const projectFolder = options.projectFolder || ConfigManager.getRuta();
+      
+      if (ConfigManager.isUsingFileSystemAPI()) {
+        const saved = await FileSystemStorage.saveDocument(blob, filename, projectFolder);
+        
+        if (saved) {
+          setProgress(100);
+          toast({
+            title: 'PDF guardado exitosamente',
+            description: `El archivo "${filename}" se guardó en docs generated/${projectFolder}/`,
+          });
+          return true;
+        } else {
+          // Si falla, usar método tradicional
+          console.warn('Guardado automático falló, usando descarga tradicional');
+        }
+      }
+      
+      // Fallback: método tradicional de descarga
       pdf.save(filename);
 
       setProgress(100);

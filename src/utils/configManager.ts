@@ -1,48 +1,64 @@
+import { FileSystemStorage } from './fileSystemStorage';
+
 // Gestor de configuración para rutas de guardado
 export class ConfigManager {
   private static configData: { ruta?: string } = {};
 
-  // Leer configuración desde archivo de texto
+  // Solicitar acceso a carpeta usando File System Access API
   static async loadConfig(): Promise<void> {
     try {
-      // Crear un input de archivo oculto para que el usuario seleccione el .txt
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.txt';
+      // Intentar usar File System Access API primero
+      if (FileSystemStorage.isSupported()) {
+        const granted = await FileSystemStorage.requestDirectoryAccess();
+        if (granted) {
+          this.configData.ruta = FileSystemStorage.getFolderName();
+          return;
+        }
+      }
       
-      return new Promise((resolve, reject) => {
-        fileInput.onchange = async (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (!file) {
-            reject(new Error('No se seleccionó archivo'));
-            return;
-          }
-
-          try {
-            const text = await file.text();
-            const lines = text.split('\n');
-            
-            for (const line of lines) {
-              const trimmedLine = line.trim();
-              if (trimmedLine.includes('Ruta =')) {
-                const rutaMatch = trimmedLine.match(/Ruta\s*=\s*"([^"]+)"/);
-                if (rutaMatch) {
-                  this.configData.ruta = rutaMatch[1];
-                }
-              }
-            }
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        };
-        
-        fileInput.click();
-      });
+      // Fallback: método tradicional con archivo .txt
+      await this.loadConfigFromFile();
     } catch (error) {
       console.error('Error al cargar configuración:', error);
       throw error;
     }
+  }
+
+  // Método legacy: leer configuración desde archivo de texto
+  private static async loadConfigFromFile(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.txt';
+      
+      fileInput.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) {
+          reject(new Error('No se seleccionó archivo'));
+          return;
+        }
+
+        try {
+          const text = await file.text();
+          const lines = text.split('\n');
+          
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.includes('Ruta =')) {
+              const rutaMatch = trimmedLine.match(/Ruta\s*=\s*"([^"]+)"/);
+              if (rutaMatch) {
+                this.configData.ruta = rutaMatch[1];
+              }
+            }
+          }
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      fileInput.click();
+    });
   }
 
   // Obtener la ruta configurada
@@ -58,5 +74,11 @@ export class ConfigManager {
   // Limpiar configuración
   static clearConfig(): void {
     this.configData = {};
+    FileSystemStorage.clearConfig();
+  }
+  
+  // Verificar si está usando File System Access API
+  static isUsingFileSystemAPI(): boolean {
+    return FileSystemStorage.isSupported();
   }
 }

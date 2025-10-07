@@ -1,5 +1,7 @@
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
+import { FileSystemStorage } from './fileSystemStorage';
+import { ConfigManager } from './configManager';
 
 interface Worker {
   id: string;
@@ -357,6 +359,20 @@ export async function generateDocx(
     
     const folderPrefix = folderName ? `${folderName}_` : '';
     const fileName = `Inspección_${folderPrefix}${new Date().toISOString().split('T')[0]}.docx`;
+    
+    // Intentar guardar usando File System Access API
+    const projectFolder = folderName || ConfigManager.getRuta();
+    
+    if (ConfigManager.isUsingFileSystemAPI()) {
+      const saved = await FileSystemStorage.saveDocument(blob, fileName, projectFolder);
+      
+      if (saved) {
+        console.log(`Documento guardado en docs generated/${projectFolder}/`);
+        return;
+      }
+    }
+    
+    // Fallback: método tradicional
     saveAs(blob, fileName);
 
   } catch (error) {

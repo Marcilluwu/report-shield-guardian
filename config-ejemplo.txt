@@ -2,9 +2,42 @@ Ruta = "C:\Documentos\Reportes"
 
 # Configuración del Sistema de Inspección
 
-## Configuración de Ruta de Guardado
+## Nuevo: File System Access API (Recomendado)
 
-Para configurar dónde se guardan los reportes generados, edita este archivo con el siguiente formato:
+La aplicación ahora soporta guardado automático mediante File System Access API:
+
+### Ventajas
+- ✅ Guardado automático sin diálogos repetitivos
+- ✅ Organización automática en carpetas (Logos/ y docs generated/)
+- ✅ La configuración se mantiene entre sesiones
+- ✅ Compatible con Chrome/Edge 86+
+
+### Cómo usar
+1. Al configurar por primera vez, selecciona una carpeta base
+2. La aplicación creará automáticamente:
+   - `Logos/` - Para almacenar logos de empresas
+   - `docs generated/[Proyecto]/` - Para documentos organizados por proyecto
+
+### Estructura de carpetas generada
+```
+Carpeta Base/
+├── Logos/
+│   ├── empresa1.png
+│   ├── empresa2.png
+│   └── ...
+└── docs generated/
+    ├── Proyecto A/
+    │   ├── Inspección_Proyecto_A_2024-01-15.pdf
+    │   └── Inspección_Proyecto_A_2024-01-15.docx
+    ├── Proyecto B/
+    │   └── ...
+    └── ...
+```
+
+## Método Legacy: Archivo de Configuración .txt
+
+Si tu navegador no soporta File System Access API, puedes usar el método tradicional:
+
 
 ```
 Ruta = "C:\Users\TuUsuario\Documentos\Reportes"
@@ -12,19 +45,44 @@ Ruta = "C:\Users\TuUsuario\Documentos\Reportes"
 
 **Notas importantes:**
 - Usa barras invertidas dobles (\\) o barras normales (/) en la ruta
-- Asegúrate de que la carpeta existe y tienes permisos de escritura
-- El sistema creará subcarpetas automáticamente según la carpeta seleccionada
+- Este método solo define el nombre de la carpeta del proyecto
+- No proporciona guardado automático (siempre se abrirá el diálogo de descarga)
+
+## Compatibilidad
+
+### File System Access API (Automático)
+- ✅ Chrome/Chromium 86+
+- ✅ Edge 86+
+- ⏳ Firefox (en desarrollo)
+- ⏳ Safari (en desarrollo)
+
+### Método Legacy (Siempre funciona)
+- ✅ Todos los navegadores
+- ⚠️ Requiere confirmar cada descarga manualmente
 
 ## Formato de Archivos Generados
 
 Los archivos se guardan con el formato:
-`Inspección_[Nombre_Carpeta]_[Fecha].pdf`
+- PDFs: `Inspección_[Nombre_Carpeta]_[Fecha].pdf`
+- DOCX: `Inspección_[Nombre_Carpeta]_[Fecha].docx`
 
 Ejemplo: `Inspección_Proyecto_ABC_2024-01-15.pdf`
 
-## Configuración de Logos
+## Gestión de Logos
 
 Los logos se gestionan directamente desde la aplicación:
 1. Sube archivos PNG en la sección "Selección de Logo y Carpeta"
-2. Los logos se almacenan localmente y están disponibles para futuros reportes
-3. Selecciona el logo apropiado para cada empresa/proyecto
+2. Con File System Access API: Se guardan automáticamente en `Logos/`
+3. Los logos están disponibles para futuros reportes
+4. Selecciona el logo apropiado para cada empresa/proyecto
+
+## Solución de Problemas
+
+### El guardado automático no funciona
+- Verifica que estés usando Chrome/Edge 86+
+- Asegúrate de haber concedido permisos a la carpeta
+- Si se deniegan los permisos, la app usará el método tradicional de descarga
+
+### No se crea la estructura de carpetas
+- Verifica que tengas permisos de escritura en la carpeta seleccionada
+- La app necesita permisos de "readwrite" en el directorio base
