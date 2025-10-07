@@ -328,35 +328,6 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 <div><strong>Fecha:</strong> {new Date().toLocaleDateString('es-ES')}</div>
               </div>
 
-              {/* Green table header */}
-              <div className="overflow-x-auto mb-4">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px' }}>
-                  <thead style={{ backgroundColor: '#4a7c59', color: 'white' }}>
-                    <tr>
-                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>TIPO DE EXTINTOR</th>
-                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>Nº DE PLACA</th>
-                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>MARCA/MODELO</th>
-                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>FECHA DE FABRICACIÓN</th>
-                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>FECHA PRUEBA HIDRÁULICA</th>
-                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>TRABAJO REALIZADO</th>
-                      <th style={{ border: '1px solid #4a7c59', padding: '4px 6px', textAlign: 'left' }}>ANOTACIONES</th>
-                    </tr>
-                  </thead>
-                  <tbody style={{ backgroundColor: 'white' }}>
-                    {data.episReviewed.filter(epi => epi.checked).map((epi, index) => (
-                      <tr key={index}>
-                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>{epi.name}</td>
-                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
-                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
-                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
-                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
-                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>REVISIÓN</td>
-                        <td style={{ border: '1px solid #ddd', padding: '3px 6px' }}>-</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
 
               {/* Information sections - compact */}
               <div style={{ fontSize: '10px', marginBottom: '12px', lineHeight: '1.5' }}>
@@ -403,7 +374,11 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>4. Entorno de la Obra</h2>
                 {data.workEnvironment.photos.map((photo, index) => (
                   <div key={index} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
-                    <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Comentario {index + 1}:</strong> {photo.comment}</p>
+                    {photo.comment ? (
+                      <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>{photo.comment}</strong></p>
+                    ) : (
+                      <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Foto {index + 1}:</strong></p>
+                    )}
                     <div style={{ textAlign: 'center' }}>
                       <img
                         src={photo.url}
@@ -422,7 +397,11 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>5. Estado de las Herramientas</h2>
                 {data.toolsStatus.photos.map((photo, index) => (
                   <div key={index} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
-                    <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Comentario {index + 1}:</strong> {photo.comment}</p>
+                    {photo.comment ? (
+                      <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>{photo.comment}</strong></p>
+                    ) : (
+                      <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Foto {index + 1}:</strong></p>
+                    )}
                     <div style={{ textAlign: 'center' }}>
                       <img
                         src={photo.url}
@@ -447,7 +426,11 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                       </h3>
                       {van.photos.map((photo, photoIndex) => (
                         <div key={photo.id} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
-                          <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Comentario {photoIndex + 1}:</strong> {photo.comment}</p>
+                          {photo.comment ? (
+                            <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>{photo.comment}</strong></p>
+                          ) : (
+                            <p style={{ fontSize: '10px', marginBottom: '6px' }}><strong>Foto {photoIndex + 1}:</strong></p>
+                          )}
                           <div style={{ textAlign: 'center' }}>
                             <img
                               src={photo.url}
