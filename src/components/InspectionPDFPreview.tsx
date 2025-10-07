@@ -320,22 +320,15 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 </div>
               </div>
 
-              {/* Document details */}
-              <div style={{ fontSize: '10px', marginBottom: '8px', lineHeight: '1.3' }}>
-                <div><strong>N° Cliente: 322.1</strong></div>
-                <div><strong>Cliente Modificado por Mateo Plaza</strong></div>
-                <div><strong>C/Núñez 16, 2° 2'</strong></div>
-                <div><strong>Fecha:</strong> {new Date().toLocaleDateString('es-ES')}</div>
-              </div>
-
-
               {/* Information sections - compact */}
-              <div style={{ fontSize: '10px', marginBottom: '12px', lineHeight: '1.5' }}>
-                <p><strong>PROMOTOR:</strong> {data.work.promotingCompany}</p>
-                <p><strong>PROYECTO:</strong> {data.work.name}</p>
-                <p><strong>EMPLAZAMIENTO:</strong> {data.work.location}</p>
-                <p><strong>INSPECTOR:</strong> {data.inspector.name}</p>
-                <p><strong>EMAIL:</strong> {data.inspector.email}</p>
+              <div style={{ fontSize: '11px', marginBottom: '15px', lineHeight: '1.6' }}>
+                <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#4a7c59' }}>1. Datos de la inspección</h2>
+                <p><strong>Promotor:</strong> {data.work.promotingCompany}</p>
+                <p><strong>Proyecto:</strong> {data.work.name}</p>
+                <p><strong>Emplazamiento:</strong> {data.work.location}</p>
+                <p><strong>Inspector:</strong> {data.inspector.name}</p>
+                <p><strong>Email del inspector:</strong> {data.inspector.email}</p>
+                <p><strong>Fecha:</strong> {new Date().toLocaleDateString('es-ES')}</p>
               </div>
 
               {/* Participants */}
@@ -352,20 +345,19 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                 </div>
               )}
 
-              {/* Comprobaciones section */}
-              <div className="mb-4">
-                <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#333', textAlign: 'center' }}>
-                  Comprobaciones Realizadas en Extintores
-                </h2>
-                <div style={{ fontSize: '9px', lineHeight: '1.4', columnCount: 3, columnGap: '15px' }}>
-                  <p style={{ marginBottom: '6px' }}>Dispone de mercado CE como equipo a presión según reglamento de desarrollo CE como nivel riesgos desde todos los frentes de ataque comprendidos en zonas de uso.</p>
-                  <p style={{ marginBottom: '6px' }}><strong>¿Es accesible?</strong></p>
-                  <p style={{ marginBottom: '6px' }}>La unidad inspeccionada está ubicada de tal forma que resultó fácil su descolgado y uso rápido cuando una persona necesitó alcanzar el proyecto desde todos.</p>
-                  <p style={{ marginBottom: '6px' }}>Se nos indica el del estándar tal tanto de recorrido desde todos y también si cuenta mantenimiento vigente al mes pero específicamente al entorno proyectados al efecto.</p>
-                  <p style={{ marginBottom: '6px' }}>Los niveles y sistemas mantenidos adecuados y legibles. Las herramientas fáciles acceso al operario a nivel recorrido y seguridad del proyecto.</p>
-                  <p style={{ marginBottom: '6px' }}>Si en cierto sistema CO₂ con mecanismo bien dispuesto al ambiente según necesidad del fuego de que a efecto.</p>
+              {/* EPIs section */}
+              {data.episReviewed && data.episReviewed.length > 0 && (
+                <div className="mb-4">
+                  <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#4a7c59' }}>3. Resumen de las EPIS inspeccionadas</h2>
+                  <div style={{ fontSize: '10px', lineHeight: '1.5' }}>
+                    {data.episReviewed.filter(epi => epi.checked).map((epi, index) => (
+                      <div key={epi.id} style={{ marginBottom: '4px' }}>
+                        • {epi.name}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Work Environment Photos */}
