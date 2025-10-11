@@ -1,5 +1,7 @@
 // Servicio para enviar documentos a n8n webhook
 import { toast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
+import { addToOutbox, getPendingCount } from '@/lib/outbox';
 
 interface UploadDocumentOptions {
   file: Blob;
@@ -52,6 +54,14 @@ export class WebhookApi {
         ...metadata
       };
 
+      // Verificar conexión real
+      const isOnline = navigator.onLine && await this.checkConnection();
+
+      if (!isOnline) {
+        // Sin conexión: guardar en cola offline
+        return await this.queueForOfflineSync(payload, filename);
+      }
+
       console.log(`Enviando ${type.toUpperCase()} a webhook:`, filename);
 
       const response = await fetch(this.webhookUrl, {
@@ -64,13 +74,88 @@ export class WebhookApi {
 
       if (response.ok) {
         console.log(`${type.toUpperCase()} enviado exitosamente:`, filename);
+        
+        toast({
+          title: '✅ Documento enviado',
+          description: `${filename} subido correctamente al servidor`,
+        });
+        
         return true;
       } else {
         console.error(`Error al enviar ${type}:`, response.status, response.statusText);
-        return false;
+        // Error al enviar: guardar en cola offline
+        return await this.queueForOfflineSync(payload, filename);
       }
     } catch (error) {
       console.error(`Error al enviar documento a webhook:`, error);
+      
+      // Error: guardar en cola offline para reintento
+      const base64 = await this.blobToBase64(file);
+      const payload = {
+        filename,
+        projectName,
+        type,
+        size: file.size,
+        timestamp: new Date().toISOString(),
+        data: base64,
+        ...metadata
+      };
+      
+      return await this.queueForOfflineSync(payload, filename);
+    }
+  }
+
+  // Encolar documento para sincronización offline
+  private static async queueForOfflineSync(payload: any, filename: string): Promise<boolean> {
+    try {
+      const localId = uuidv4();
+      
+      await addToOutbox({
+        localId,
+        endpoint: this.webhookUrl,
+        method: 'POST',
+        payload,
+        timestamp: Date.now()
+      });
+
+      // Intentar registrar sync
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.sync.register('sync-form-queue');
+      } catch (e) {
+        console.warn('Background Sync no disponible:', e);
+      }
+
+      const pendingCount = await getPendingCount();
+      
+      toast({
+        title: '💾 Documento guardado localmente',
+        description: `${filename} se enviará automáticamente cuando haya conexión. ${pendingCount} documento(s) pendiente(s).`,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error queueing document for offline sync:', error);
+      
+      toast({
+        title: '❌ Error al guardar documento',
+        description: 'No se pudo guardar el documento localmente',
+        variant: 'destructive'
+      });
+      
+      return false;
+    }
+  }
+
+  // Verificar conexión real
+  private static async checkConnection(): Promise<boolean> {
+    try {
+      const response = await fetch('/ping.txt', {
+        method: 'HEAD',
+        cache: 'no-cache'
+      });
+      return response.ok;
+    } catch {
       return false;
     }
   }

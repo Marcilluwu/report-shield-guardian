@@ -4,8 +4,16 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { Queue } from 'workbox-background-sync';
+import localforage from 'localforage';
 
 declare const self: ServiceWorkerGlobalScope;
+
+// Configurar localForage para outbox
+const outbox = localforage.createInstance({
+  name: 'InspectionApp',
+  storeName: 'outbox',
+  description: 'Cola de transacciones pendientes de sincronización'
+});
 
 // Tomar control inmediatamente
 clientsClaim();
@@ -136,9 +144,112 @@ registerRoute(
 
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-form-queue') {
-    event.waitUntil(formQueue.replayRequests());
+    event.waitUntil(
+      (async () => {
+        // Procesar Queue de Workbox
+        await formQueue.replayRequests();
+        
+        // Procesar entradas del Outbox (IndexedDB)
+        await processOutboxEntries();
+      })()
+    );
   }
 });
+
+// =====================================================
+// PROCESAR ENTRADAS DEL OUTBOX (IndexedDB)
+// =====================================================
+
+async function processOutboxEntries() {
+  const broadcastChannel = new BroadcastChannel('sync-channel');
+  
+  try {
+    // Obtener todas las entradas del outbox
+    const entries: any[] = [];
+    await outbox.iterate((value: any) => {
+      if (value.status === 'pending' || value.status === 'syncing') {
+        entries.push(value);
+      }
+    });
+    
+    console.log(`📦 Procesando ${entries.length} entradas del outbox...`);
+    
+    // Procesar cada entrada
+    for (const entry of entries) {
+      try {
+        // Marcar como en proceso de sincronización
+        await outbox.setItem(entry.localId, {
+          ...entry,
+          status: 'syncing'
+        });
+        
+        // Intentar enviar al endpoint
+        const response = await fetch(entry.endpoint, {
+          method: entry.method,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(entry.payload)
+        });
+        
+        if (response.ok) {
+          // Éxito: eliminar del outbox
+          await outbox.removeItem(entry.localId);
+          
+          broadcastChannel.postMessage({
+            type: 'sync_success',
+            localId: entry.localId,
+            timestamp: Date.now()
+          });
+          
+          console.log('✅ Sincronización exitosa:', entry.localId);
+        } else {
+          // Error HTTP: marcar como fallido
+          const retryCount = (entry.retryCount || 0) + 1;
+          
+          await outbox.setItem(entry.localId, {
+            ...entry,
+            status: 'failed',
+            error: `HTTP ${response.status}: ${response.statusText}`,
+            retryCount
+          });
+          
+          broadcastChannel.postMessage({
+            type: 'sync_error',
+            localId: entry.localId,
+            error: `HTTP ${response.status}: ${response.statusText}`,
+            timestamp: Date.now()
+          });
+          
+          console.error('❌ Error en sincronización:', entry.localId, response.status);
+        }
+      } catch (error) {
+        // Error de red: marcar como fallido pero mantener en cola
+        const retryCount = (entry.retryCount || 0) + 1;
+        
+        await outbox.setItem(entry.localId, {
+          ...entry,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Error de red',
+          retryCount
+        });
+        
+        broadcastChannel.postMessage({
+          type: 'sync_error',
+          localId: entry.localId,
+          error: error instanceof Error ? error.message : 'Error de red',
+          timestamp: Date.now()
+        });
+        
+        console.warn('⚠️ Error de red, se reintentará:', entry.localId);
+      }
+    }
+  } catch (error) {
+    console.error('Error procesando outbox:', error);
+  } finally {
+    broadcastChannel.close();
+  }
+}
 
 // =====================================================
 // ESTRATEGIAS DE CACHÉ PARA OTROS RECURSOS
