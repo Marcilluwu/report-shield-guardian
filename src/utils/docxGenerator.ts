@@ -354,11 +354,7 @@ export async function generateDocx(
       }]
     });
 
-    const buffer = await Packer.toBuffer(doc);
-    const uint8Array = new Uint8Array(buffer);
-    const blob = new Blob([uint8Array], { 
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-    });
+    const blob = await Packer.toBlob(doc);
     
     const folderPrefix = folderName ? `${folderName}_` : '';
     const fileName = `Inspección_${folderPrefix}${new Date().toISOString().split('T')[0]}.docx`;
