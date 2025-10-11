@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, FileText, Wifi, WifiOff, RefreshCw, Save } from 'lucide-react';
+import { Trash2, Plus, Eye, Wifi, WifiOff, RefreshCw, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { InspectionPDFPreview } from './InspectionPDFPreview';
 import { LogoSelector } from './LogoSelector';
@@ -657,9 +657,9 @@ export const SafetyInspectionForm = () => {
               size="lg"
               className="bg-gradient-safety text-primary-foreground shadow-safety w-full sm:w-auto"
             >
-              <FileText className="h-5 w-5 mr-2" />
-              <span className="hidden sm:inline">Firmar y Generar Documentos</span>
-              <span className="sm:hidden">Firmar/Generar</span>
+              <Eye className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Generar Informe PDF</span>
+              <span className="sm:hidden">Generar PDF</span>
             </Button>
           </div>
         </div>
