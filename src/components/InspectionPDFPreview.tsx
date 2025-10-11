@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Download, Printer, Settings, FileText } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { usePDFGenerator } from '@/hooks/usePDFgenerator';
 import { useSignature } from '@/hooks/useSingature';
@@ -74,27 +74,8 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [signatureName, setSignatureName] = useState(data.inspector.name || '');
-  const [configLoaded, setConfigLoaded] = useState(ConfigManager.hasConfig());
   const { generateDualDocument } = usePDFGenerator();
   const { signatureRef, signatureData, clearSignature, validateSignature, saveSignature } = useSignature();
-
-  // Cargar configuración de ruta
-  const handleLoadConfig = async () => {
-    try {
-      await ConfigManager.loadConfig();
-      setConfigLoaded(true);
-      toast({
-        title: 'Configuración cargada',
-        description: `Ruta configurada: ${ConfigManager.getRuta()}`,
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'No se pudo cargar la configuración',
-        variant: 'destructive'
-      });
-    }
-  };
 
   // Generar documento PDF
   const generateDocument = async () => {
@@ -177,61 +158,12 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
     }
   };
 
-  // Función para imprimir
-  const handlePrint = () => {
-    try {
-      if (!signatureName.trim()) {
-        toast({
-          title: 'Error',
-          description: 'Por favor, introduzca el nombre para la firma antes de imprimir',
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      if (!signatureData) {
-        toast({
-          title: 'Error',
-          description: 'Por favor, firme el documento antes de imprimir',
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      window.print();
-    } catch (error) {
-      console.error('Error al imprimir:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo iniciar la impresión',
-        variant: 'destructive'
-      });
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Controles de acción */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Vista previa del Reporte</h2>
         <div className="flex gap-2">
-          {!configLoaded && (
-            <Button 
-              onClick={handleLoadConfig} 
-              variant="outline"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Cargar Config
-            </Button>
-          )}
-          <Button 
-            onClick={handlePrint} 
-            variant="outline"
-            disabled={!signatureName.trim()}
-          >
-            <Printer className="w-4 h-4 mr-2" />
-            Imprimir
-          </Button>
           <Button 
             onClick={generateDocument} 
             disabled={isGenerating || !signatureName.trim()}
@@ -260,11 +192,6 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
                   placeholder="Introduzca el nombre del firmante"
                 />
               </div>
-              {configLoaded && (
-                <div className="text-sm text-muted-foreground">
-                  Carpeta: {ConfigManager.getRuta()}
-                </div>
-              )}
             </div>
             
             {/* Panel de firma digital */}
