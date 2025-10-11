@@ -24,6 +24,12 @@ interface PhotoWithComment {
   url: string;
 }
 
+interface VanStatus {
+  id: string;
+  licensePlate: string;
+  photos: PhotoWithComment[];
+}
+
 interface InspectionData {
   inspector: {
     name: string;
@@ -42,10 +48,7 @@ interface InspectionData {
   toolsStatus: {
     photos: PhotoWithComment[];
   };
-  vanStatus: {
-    licensePlate: string;
-    photos: PhotoWithComment[];
-  };
+  vans: VanStatus[];
   generalObservations: string;
 }
 
@@ -61,7 +64,7 @@ export async function generateDocx(
     const allPhotos = [
       ...data.workEnvironment.photos,
       ...data.toolsStatus.photos,
-      ...data.vanStatus.photos
+      ...data.vans.flatMap(van => van.photos)
     ];
 
     // Cargar logo si está disponible
