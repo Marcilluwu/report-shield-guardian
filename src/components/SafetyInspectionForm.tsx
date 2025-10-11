@@ -221,77 +221,6 @@ export const SafetyInspectionForm = () => {
     });
   };
 
-  const clearImagesCache = () => {
-    // Revoke all existing blob URLs for photos
-    const allPhotos = [
-      ...inspectionData.workEnvironment.photos,
-      ...inspectionData.toolsStatus.photos,
-      ...inspectionData.vans.flatMap(van => van.photos)
-    ];
-    
-    allPhotos.forEach(photo => {
-      if (photo.url.startsWith('blob:')) {
-        URL.revokeObjectURL(photo.url);
-      }
-    });
-
-    // Clear all photos from state
-    setInspectionData(prev => ({
-      ...prev,
-      workEnvironment: { photos: [] },
-      toolsStatus: { photos: [] },
-      vans: prev.vans.map(van => ({ ...van, photos: [] }))
-    }));
-
-    toast({
-      title: "Imágenes eliminadas",
-      description: "Todas las imágenes han sido eliminadas de la caché correctamente.",
-    });
-  };
-
-  const clearAllCache = () => {
-    // Clear all form data
-    setInspectionData({
-      inspector: { name: '', email: '' },
-      work: { name: '', location: '', promotingCompany: '' },
-      workers: [{ id: '1', name: '', dni: '', category: '', company: '' }],
-      episReviewed: defaultEPIs,
-      workEnvironment: { photos: [] },
-      toolsStatus: { photos: [] },
-      vans: [{ id: '1', licensePlate: '', photos: [] }],
-      generalObservations: ''
-    });
-
-    // Clear logo and folder selection
-    setSelectedLogo('');
-    setLogoUrl('');
-    setSelectedFolder('');
-
-    // Clear localStorage
-    localStorage.removeItem('uploadedLogos');
-    localStorage.removeItem('selectedLogo');
-    localStorage.removeItem('availableFolders');
-    localStorage.removeItem('selectedFolder');
-
-    // Revoke all existing blob URLs
-    const allPhotos = [
-      ...inspectionData.workEnvironment.photos,
-      ...inspectionData.toolsStatus.photos,
-      ...inspectionData.vans.flatMap(van => van.photos)
-    ];
-    
-    allPhotos.forEach(photo => {
-      if (photo.url.startsWith('blob:')) {
-        URL.revokeObjectURL(photo.url);
-      }
-    });
-
-    toast({
-      title: "Caché limpiado",
-      description: "Todos los datos del formulario y caché han sido eliminados correctamente.",
-    });
-  };
-
   const toggleEPI = (epiId: string) => {
     setInspectionData(prev => ({
       ...prev,
@@ -394,7 +323,7 @@ export const SafetyInspectionForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background p-4">
+    <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background p-4 pb-32">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-2">
@@ -707,43 +636,32 @@ export const SafetyInspectionForm = () => {
           </CardContent>
         </Card>
 
-        {/* Submit and Generate PDF Buttons */}
-        <div className="flex justify-center gap-4 pb-8">
-          <Button
-            onClick={handleSaveForm}
-            size="lg"
-            variant="outline"
-            className="shadow-safety"
-          >
-            <Save className="h-5 w-5 mr-2" />
-            Guardar Formulario
-          </Button>
-          <Button
-            onClick={clearAllCache}
-            size="lg"
-            variant="outline"
-            className="border-red-500 text-red-600 hover:bg-red-50 shadow-safety"
-          >
-            <Trash2 className="h-5 w-5 mr-2" />
-            Limpiar Todo
-          </Button>
-          <Button
-            onClick={clearImagesCache}
-            size="lg"
-            variant="outline"
-            className="border-orange-500 text-orange-600 hover:bg-orange-50 shadow-safety"
-          >
-            <Trash2 className="h-5 w-5 mr-2" />
-            Solo Imágenes
-          </Button>
-          <Button
-            onClick={() => setShowPDFPreview(true)}
-            size="lg"
-            className="bg-gradient-safety text-primary-foreground shadow-safety"
-          >
-            <Eye className="h-5 w-5 mr-2" />
-            Generar Informe PDF
-          </Button>
+      </div>
+
+      {/* Fixed Bottom Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border shadow-lg z-50">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <Button
+              onClick={handleSaveForm}
+              size="lg"
+              variant="outline"
+              className="shadow-safety w-full sm:w-auto"
+            >
+              <Save className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Guardar Formulario</span>
+              <span className="sm:hidden">Guardar</span>
+            </Button>
+            <Button
+              onClick={() => setShowPDFPreview(true)}
+              size="lg"
+              className="bg-gradient-safety text-primary-foreground shadow-safety w-full sm:w-auto"
+            >
+              <Eye className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Generar Informe PDF</span>
+              <span className="sm:hidden">Generar PDF</span>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
