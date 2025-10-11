@@ -288,7 +288,17 @@ self.addEventListener('activate', (event) => {
 // =====================================================
 
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  const data = event.data;
+  if (!data) return;
+  if (data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  if (data.type === 'PROCESS_OUTBOX') {
+    event.waitUntil((async () => {
+      try {
+        await formQueue.replayRequests();
+      } catch {}
+      await processOutboxEntries();
+    })());
   }
 });

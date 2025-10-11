@@ -124,6 +124,10 @@ export class WebhookApi {
         await registration.sync.register('sync-form-queue');
       } catch (e) {
         console.warn('Background Sync no disponible:', e);
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          registration.active?.postMessage({ type: 'PROCESS_OUTBOX' });
+        } catch {}
       }
 
       const pendingCount = await getPendingCount();

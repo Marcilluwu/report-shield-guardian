@@ -323,7 +323,7 @@ export const SafetyInspectionForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background p-4 pb-40">
+    <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background p-4 pb-48">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-2">
@@ -655,7 +655,8 @@ export const SafetyInspectionForm = () => {
             <Button
               onClick={() => setShowPDFPreview(true)}
               size="lg"
-              className="bg-gradient-safety text-primary-foreground shadow-safety w-full sm:w-auto"
+              variant="default"
+              className="shadow-safety w-full sm:w-auto"
             >
               <Eye className="h-5 w-5 mr-2" />
               <span className="hidden sm:inline">Generar Informe PDF</span>

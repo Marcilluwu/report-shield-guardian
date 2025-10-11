@@ -159,6 +159,10 @@ export function useOfflineForm(): UseOfflineFormReturn {
           await registration.sync.register('sync-form-queue');
         } catch (e) {
           console.warn('Background Sync no disponible:', e);
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            registration.active?.postMessage({ type: 'PROCESS_OUTBOX' });
+          } catch {}
         }
 
         toast({
@@ -214,6 +218,10 @@ export function useOfflineForm(): UseOfflineFormReturn {
         await registration.sync.register('sync-form-queue');
       } catch (e) {
         console.warn('Background Sync no disponible:', e);
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          registration.active?.postMessage({ type: 'PROCESS_OUTBOX' });
+        } catch {}
       }
 
       toast({
@@ -256,6 +264,11 @@ export function useOfflineForm(): UseOfflineFormReturn {
       });
     } catch (error) {
       console.error('Error al activar sync:', error);
+      // Fallback: pedir al SW que procese la outbox ahora
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        registration.active?.postMessage({ type: 'PROCESS_OUTBOX' });
+      } catch {}
       toast({
         title: '❌ Error',
         description: 'No se pudo iniciar la sincronización.',
