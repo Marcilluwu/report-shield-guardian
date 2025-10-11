@@ -39,18 +39,26 @@ const formQueue = new Queue('form-submissions-queue', {
         const response = await fetch(entry.request.clone());
         
         if (response.ok) {
-          // Extraer el localId del body de la petición
+          // Extraer el localId del body de la petición (si existe)
           const clonedRequest = entry.request.clone();
-          const body = await clonedRequest.json();
-          const localId = body.localId;
+          let localId: string | undefined = undefined;
+          try {
+            const body = await clonedRequest.json();
+            localId = body.localId;
+          } catch {}
+
+          // Leer texto que devuelve el servidor
+          let serverText = '';
+          try { serverText = await response.clone().text(); } catch {}
           
           broadcastChannel.postMessage({
             type: 'sync_success',
             localId,
+            serverText,
             timestamp: Date.now()
           });
           
-          console.log('✅ Sincronización exitosa:', localId);
+          console.log('✅ Sincronización exitosa (workbox):', localId, '→ Respuesta:', serverText);
         } else {
           // Error permanente (4xx, 5xx)
           const clonedRequest = entry.request.clone();
@@ -193,16 +201,21 @@ async function processOutboxEntries() {
         });
         
         if (response.ok) {
+          // Leer texto devuelto por el webhook (para depuración/validación)
+          let serverText = '';
+          try { serverText = await response.clone().text(); } catch {}
+
           // Éxito: eliminar del outbox
           await outbox.removeItem(entry.localId);
           
           broadcastChannel.postMessage({
             type: 'sync_success',
             localId: entry.localId,
+            serverText,
             timestamp: Date.now()
           });
           
-          console.log('✅ Sincronización exitosa:', entry.localId);
+          console.log('✅ Sincronización exitosa:', entry.localId, '→ Respuesta:', serverText);
         } else {
           // Error HTTP: marcar como fallido
           const retryCount = (entry.retryCount || 0) + 1;
@@ -290,15 +303,43 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   const data = event.data;
   if (!data) return;
+
   if (data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+
   if (data.type === 'PROCESS_OUTBOX') {
     event.waitUntil((async () => {
-      try {
-        await formQueue.replayRequests();
-      } catch {}
+      try { await formQueue.replayRequests(); } catch {}
       await processOutboxEntries();
+    })());
+  }
+
+  if (data.type === 'CLEAR_OUTBOX') {
+    event.waitUntil((async () => { await outbox.clear(); })());
+  }
+
+  if (data.type === 'CLEAR_QUEUE') {
+    event.waitUntil((async () => {
+      try { while (await formQueue.shiftRequest()) { /* drain */ } } catch {}
+    })());
+  }
+
+  if (data.type === 'CLEAR_CACHES') {
+    event.waitUntil((async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    })());
+  }
+
+  if (data.type === 'CLEAR_ALL') {
+    event.waitUntil((async () => {
+      try { while (await formQueue.shiftRequest()) {} } catch {}
+      try { await outbox.clear(); } catch {}
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      } catch {}
     })());
   }
 });

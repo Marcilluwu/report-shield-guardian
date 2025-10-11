@@ -72,17 +72,19 @@ export class WebhookApi {
         body: JSON.stringify(payload),
       });
 
+      const respText = await response.clone().text().catch(() => '');
+
       if (response.ok) {
-        console.log(`${type.toUpperCase()} enviado exitosamente:`, filename);
+        console.log(`${type.toUpperCase()} enviado exitosamente:`, filename, '→ Respuesta:', respText);
         
         toast({
           title: '✅ Documento enviado',
-          description: `${filename} subido correctamente al servidor`,
+          description: `${filename} subido correctamente. Servidor: ${respText || 'OK'}`,
         });
         
         return true;
       } else {
-        console.error(`Error al enviar ${type}:`, response.status, response.statusText);
+        console.error(`Error al enviar ${type}:`, response.status, response.statusText, '→ Respuesta:', respText);
         // Error al enviar: guardar en cola offline
         return await this.queueForOfflineSync(payload, filename);
       }
@@ -220,12 +222,13 @@ export class WebhookApi {
       });
 
       const isOk = response.ok;
+      const respText = await response.clone().text().catch(() => '');
       
       toast({
         title: isOk ? 'Conexión exitosa' : 'Error de conexión',
         description: isOk 
-          ? 'El webhook está funcionando correctamente' 
-          : `Error: ${response.status} ${response.statusText}`,
+          ? `Webhook activo. Respuesta: ${respText || 'OK'}`
+          : `Error: ${response.status} ${response.statusText}. Respuesta: ${respText}`,
         variant: isOk ? 'default' : 'destructive',
       });
 

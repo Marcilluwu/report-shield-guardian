@@ -23,6 +23,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { toast } from '@/hooks/use-toast';
+import { clearOutbox } from '@/lib/outbox';
 
 export const OfflineQueueStatus = () => {
   const { pendingCount, pendingEntries, retrySync, isOnline } = useOfflineForm();
@@ -106,14 +108,38 @@ export const OfflineQueueStatus = () => {
             ))}
 
             {isOnline && (
-              <Button
-                onClick={retrySync}
-                className="w-full"
-                variant="outline"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reintentar Sincronización
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  onClick={retrySync}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reintentar Sincronización
+                </Button>
+                <Button
+                  onClick={async () => {
+                    try {
+                      await clearOutbox();
+                      try {
+                        const registration = await navigator.serviceWorker.ready;
+                        registration.active?.postMessage({ type: 'CLEAR_ALL' });
+                      } catch {}
+                      toast({
+                        title: '🧹 Cola y caché limpiadas',
+                        description: 'Se vació la cola local y los cachés del Service Worker.'
+                      });
+                    } catch (e) {
+                      toast({ title: 'Error limpiando cola', variant: 'destructive' });
+                    }
+                  }}
+                  className="w-full"
+                  variant="destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Vaciar cola y caché
+                </Button>
+              </div>
             )}
             
             {!isOnline && (
