@@ -7,6 +7,7 @@ import html2canvas from 'html2canvas';
 import { toast } from '@/hooks/use-toast';
 import { FileSystemStorage } from '@/utils/fileSystemStorage';
 import { ConfigManager } from '@/utils/configManager';
+import { generateDocx } from '@/utils/docxGenerator';
 
 interface PDFGenerationOptions {
   filename?: string;
@@ -15,10 +16,17 @@ interface PDFGenerationOptions {
   projectFolder?: string; // Carpeta del proyecto dentro de "docs generated/"
 }
 
+interface GenerateDualOptions extends PDFGenerationOptions {
+  inspectionData: any;
+  signatureName: string;
+  logoUrl?: string;
+}
+
 interface UsePDFGeneratorReturn {
   isGenerating: boolean;
   progress: number;
   generatePDF: (elementRef: React.RefObject<HTMLElement>, options?: PDFGenerationOptions) => Promise<boolean>;
+  generateDualDocument: (elementRef: React.RefObject<HTMLElement>, options: GenerateDualOptions) => Promise<boolean>;
   printDocument: (elementRef: React.RefObject<HTMLElement>) => void;
 }
 
@@ -250,10 +258,91 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
     }
   }, []);
 
+  // ✅ Función para generar PDF y DOCX simultáneamente
+  const generateDualDocument = useCallback(async (
+    elementRef: React.RefObject<HTMLElement>,
+    options: GenerateDualOptions
+  ): Promise<boolean> => {
+    const {
+      filename = `documento-${new Date().toISOString().split('T')[0]}`,
+      inspectionData,
+      signatureName,
+      logoUrl,
+      projectFolder
+    } = options;
+
+    try {
+      setIsGenerating(true);
+      setProgress(5);
+
+      // Generar nombre base sin extensión
+      const baseFilename = filename.replace(/\.(pdf|docx)$/i, '');
+      const pdfFilename = `${baseFilename}.pdf`;
+      const docxFilename = `${baseFilename}.docx`;
+
+      // 1. Generar DOCX primero (más rápido)
+      setProgress(20);
+      toast({
+        title: 'Generando documentos...',
+        description: 'Creando documento DOCX',
+      });
+
+      await generateDocx(
+        inspectionData,
+        signatureName,
+        logoUrl,
+        projectFolder
+      );
+
+      setProgress(60);
+
+      // 2. Generar PDF
+      toast({
+        title: 'Generando documentos...',
+        description: 'Creando documento PDF',
+      });
+
+      const success = await generatePDF(elementRef, {
+        filename: pdfFilename,
+        projectFolder
+      });
+
+      if (success) {
+        setProgress(100);
+        toast({
+          title: 'Documentos generados exitosamente',
+          description: `Se han creado los archivos PDF y DOCX`,
+        });
+        return true;
+      }
+
+      return false;
+
+    } catch (error) {
+      console.error('Error al generar documentos:', error);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Error desconocido al generar los documentos';
+
+      toast({
+        title: 'Error al generar documentos',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+
+      return false;
+    } finally {
+      setIsGenerating(false);
+      setProgress(0);
+    }
+  }, [generatePDF]);
+
   return {
     isGenerating,
     progress,
     generatePDF,
+    generateDualDocument,
     printDocument,
   };
 };

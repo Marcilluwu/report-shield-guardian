@@ -75,7 +75,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [signatureName, setSignatureName] = useState(data.inspector.name || '');
   const [configLoaded, setConfigLoaded] = useState(ConfigManager.hasConfig());
-  const { generatePDF } = usePDFGenerator();
+  const { generateDualDocument } = usePDFGenerator();
   const { signatureRef, signatureData, clearSignature, validateSignature, saveSignature } = useSignature();
 
   // Cargar configuración de ruta
@@ -133,7 +133,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
 
       const folderPrefix = selectedFolder ? `${selectedFolder}_` : '';
       const currentDate = new Date().toISOString().split('T')[0];
-      const fileName = `Inspección_${folderPrefix}${currentDate}.pdf`;
+      const baseFileName = `Inspección_${folderPrefix}${currentDate}`;
       
       // Obtener referencia al contenido del documento
       const contentElement = document.getElementById('pdf-content');
@@ -147,12 +147,20 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       }
 
       const elementRef = { current: contentElement };
-      const success = await generatePDF(elementRef, { filename: fileName });
+      
+      // Generar ambos documentos (PDF y DOCX) simultáneamente
+      const success = await generateDualDocument(elementRef, {
+        filename: baseFileName,
+        inspectionData: data,
+        signatureName,
+        logoUrl,
+        projectFolder: selectedFolder
+      });
 
       if (success) {
         toast({
-          title: 'Documento generado',
-          description: `El archivo PDF se ha descargado correctamente`,
+          title: 'Documentos generados',
+          description: `Los archivos PDF y DOCX se han generado correctamente`,
         });
       }
 
