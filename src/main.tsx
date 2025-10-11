@@ -11,30 +11,22 @@ import "./index.css";
 // =====================================================
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js', { type: 'module' })
-      .then((registration) => {
-        console.log('🚀 Service Worker registrado:', registration.scope);
-        
-        // Escuchar actualizaciones del SW
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('🔄 Nueva versión del Service Worker disponible');
-                // Podrías mostrar una notificación al usuario aquí
-              }
-            });
-          }
-        });
-      })
-      .catch((error) => {
-        console.error('❌ Error al registrar Service Worker:', error);
+  // Usar el registrador del plugin PWA para evitar redirecciones prohibidas
+  import('virtual:pwa-register')
+    .then(({ registerSW }) => {
+      const updateSW = registerSW({
+        immediate: true,
+        onRegistered(registration) {
+          console.log('🚀 Service Worker registrado:', registration?.scope);
+        },
+        onRegisterError(error) {
+          console.error('❌ Error al registrar Service Worker (PWA):', error);
+        },
       });
-  });
+    })
+    .catch((error) => {
+      console.error('❌ Error importando registrador PWA:', error);
+    });
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
