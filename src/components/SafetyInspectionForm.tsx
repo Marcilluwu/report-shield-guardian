@@ -323,7 +323,7 @@ export const SafetyInspectionForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background p-4 pb-32">
+    <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background p-4 pb-40">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-2">
@@ -639,9 +639,9 @@ export const SafetyInspectionForm = () => {
       </div>
 
       {/* Fixed Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border shadow-lg z-50">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="flex flex-col sm:flex-row justify-center gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
+        <div className="max-w-4xl mx-auto p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
             <Button
               onClick={handleSaveForm}
               size="lg"
