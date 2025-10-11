@@ -57,7 +57,8 @@ export async function generateDocx(
   data: InspectionData, 
   signatureName: string, 
   logoUrl?: string, 
-  folderName?: string
+  folderName?: string,
+  signatureDataUrl?: string
 ): Promise<void> {
   try {
     // Convertir imágenes a buffer usando ArrayBuffer directamente
@@ -76,6 +77,17 @@ export async function generateDocx(
         logoBuffer = await logoResponse.arrayBuffer();
       } catch (error) {
         console.warn('Error cargando logo:', error);
+      }
+    }
+
+    // Cargar firma si está disponible
+    let signatureBuffer: ArrayBuffer | null = null;
+    if (signatureDataUrl) {
+      try {
+        const signatureResponse = await fetch(signatureDataUrl);
+        signatureBuffer = await signatureResponse.arrayBuffer();
+      } catch (error) {
+        console.warn('Error cargando firma:', error);
       }
     }
 
@@ -355,12 +367,32 @@ export async function generateDocx(
       })
     );
 
-    documentChildren.push(
-      new Paragraph({
-        text: "_".repeat(50),
-        spacing: { after: 200 }
-      })
-    );
+    // Agregar imagen de la firma si existe
+    if (signatureBuffer) {
+      documentChildren.push(
+        new Paragraph({
+          children: [
+            new ImageRun({
+              data: signatureBuffer,
+              transformation: {
+                width: 300,
+                height: 80
+              },
+              type: "png"
+            })
+          ],
+          alignment: "center",
+          spacing: { after: 200 }
+        })
+      );
+    } else {
+      documentChildren.push(
+        new Paragraph({
+          text: "_".repeat(50),
+          spacing: { after: 200 }
+        })
+      );
+    }
 
     documentChildren.push(
       new Paragraph({

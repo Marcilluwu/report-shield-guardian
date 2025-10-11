@@ -154,7 +154,8 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
         inspectionData: data,
         signatureName,
         logoUrl,
-        projectFolder: selectedFolder
+        projectFolder: selectedFolder,
+        signatureDataUrl: signatureData
       });
 
       if (success) {

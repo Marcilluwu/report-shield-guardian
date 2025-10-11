@@ -21,6 +21,7 @@ interface GenerateDualOptions extends PDFGenerationOptions {
   inspectionData: any;
   signatureName: string;
   logoUrl?: string;
+  signatureDataUrl?: string;
 }
 
 interface UsePDFGeneratorReturn {
@@ -291,7 +292,8 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       inspectionData,
       signatureName,
       logoUrl,
-      projectFolder
+      projectFolder,
+      signatureDataUrl
     } = options;
 
     try {
@@ -314,7 +316,8 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         inspectionData,
         signatureName,
         logoUrl,
-        projectFolder
+        projectFolder,
+        signatureDataUrl
       );
 
       setProgress(60);
