@@ -310,7 +310,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       <Card>
         <CardContent className="p-8">
           <div id="pdf-content" className="space-y-4">
-            <div className="pdf-page space-y-4" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4', padding: '15mm' }}>
+            <div className="pdf-page space-y-4" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4', padding: '15mm', letterSpacing: '0.3px' }}>
               {/* Header with logo and green title */}
               <div className="flex items-start gap-4 mb-4">
                 {logoUrl && (
@@ -330,7 +330,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
               </div>
 
               {/* Information sections - compact */}
-              <div style={{ fontSize: '11px', marginBottom: '15px', lineHeight: '1.6' }}>
+              <div style={{ fontSize: '11px', marginBottom: '15px', lineHeight: '1.6', letterSpacing: '0.3px' }}>
                 <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#4a7c59' }}>1. Datos de la inspección</h2>
                 <p><strong>Promotor:</strong> {data.work.promotingCompany}</p>
                 <p><strong>Proyecto:</strong> {data.work.name}</p>

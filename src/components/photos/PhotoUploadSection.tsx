@@ -28,21 +28,43 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
         <CardTitle className="text-primary">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor={inputId} className="cursor-pointer">
-            <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-              <Upload className="mx-auto h-8 w-8 text-primary mb-2" />
-              <p className="text-sm text-muted-foreground">Subir fotos</p>
-            </div>
-          </Label>
-          <Input
-            id={inputId}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => onUpload(e.target.files)}
-          />
+        <div className="grid grid-cols-2 gap-3">
+          {/* Botón para galería */}
+          <div>
+            <Label htmlFor={`${inputId}-gallery`} className="cursor-pointer">
+              <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                <Upload className="mx-auto h-6 w-6 text-primary mb-1" />
+                <p className="text-xs text-muted-foreground">Galería</p>
+              </div>
+            </Label>
+            <Input
+              id={`${inputId}-gallery`}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => onUpload(e.target.files)}
+            />
+          </div>
+
+          {/* Botón para cámara */}
+          <div>
+            <Label htmlFor={`${inputId}-camera`} className="cursor-pointer">
+              <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                <Upload className="mx-auto h-6 w-6 text-primary mb-1" />
+                <p className="text-xs text-muted-foreground">Cámara</p>
+              </div>
+            </Label>
+            <Input
+              id={`${inputId}-camera`}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={(e) => onUpload(e.target.files)}
+            />
+          </div>
         </div>
 
         {photos.map((photo) => (
