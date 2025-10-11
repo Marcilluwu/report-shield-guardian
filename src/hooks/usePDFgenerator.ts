@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { FileSystemStorage } from '@/utils/fileSystemStorage';
 import { ConfigManager } from '@/utils/configManager';
 import { generateDocx } from '@/utils/docxGenerator';
+import { WebhookApi } from '@/services/webhookApi';
 
 interface PDFGenerationOptions {
   filename?: string;
@@ -136,6 +137,18 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         const saved = await FileSystemStorage.saveDocument(blob, filename, projectFolder);
         
         if (saved) {
+          setProgress(95);
+          
+          // Enviar a webhook si está configurado
+          if (WebhookApi.hasWebhook()) {
+            await WebhookApi.uploadDocument({
+              file: blob,
+              filename,
+              projectName: projectFolder,
+              type: 'pdf'
+            });
+          }
+          
           setProgress(100);
           toast({
             title: 'PDF guardado exitosamente',
@@ -150,6 +163,16 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       
       // Fallback: método tradicional de descarga
       pdf.save(filename);
+      
+      // Enviar a webhook si está configurado
+      if (WebhookApi.hasWebhook()) {
+        await WebhookApi.uploadDocument({
+          file: blob,
+          filename,
+          projectName: projectFolder,
+          type: 'pdf'
+        });
+      }
 
       setProgress(100);
 

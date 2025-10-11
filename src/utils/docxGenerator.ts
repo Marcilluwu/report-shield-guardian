@@ -2,6 +2,7 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Image
 import { saveAs } from 'file-saver';
 import { FileSystemStorage } from './fileSystemStorage';
 import { ConfigManager } from './configManager';
+import { WebhookApi } from '@/services/webhookApi';
 
 interface Worker {
   id: string;
@@ -392,12 +393,33 @@ export async function generateDocx(
       
       if (saved) {
         console.log(`Documento guardado en docs generated/${projectFolder}/`);
+        
+        // Enviar a webhook si está configurado
+        if (WebhookApi.hasWebhook()) {
+          await WebhookApi.uploadDocument({
+            file: blob,
+            filename: fileName,
+            projectName: projectFolder,
+            type: 'docx'
+          });
+        }
+        
         return;
       }
     }
     
     // Fallback: método tradicional
     saveAs(blob, fileName);
+    
+    // Enviar a webhook si está configurado
+    if (WebhookApi.hasWebhook()) {
+      await WebhookApi.uploadDocument({
+        file: blob,
+        filename: fileName,
+        projectName: projectFolder,
+        type: 'docx'
+      });
+    }
 
   } catch (error) {
     console.error('Error generando DOCX:', error);
