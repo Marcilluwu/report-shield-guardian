@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from 'workbox-core';
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute } from 'workbox-routing';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { Queue } from 'workbox-background-sync';
 import localforage from 'localforage';
@@ -24,6 +24,16 @@ cleanupOutdatedCaches();
 
 // Precachear recursos del application shell
 precacheAndRoute(self.__WB_MANIFEST);
+
+// App Shell fallback para navegaciones: siempre servir index.html incluso sin conexión
+const appShellHandler = createHandlerBoundToURL('/index.html');
+registerRoute(new NavigationRoute(appShellHandler, {
+  // Evitar que rutas de API y archivos estáticos entren en el fallback
+  denylist: [
+    /\/api\//,
+    /\.(?:html|js|css|json|png|jpg|jpeg|svg|webp|ico|map)$/
+  ],
+}));
 
 // =====================================================
 // CONFIGURACIÓN DE LA COLA DE SINCRONIZACIÓN (OUTBOX)
