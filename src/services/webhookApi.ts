@@ -191,23 +191,50 @@ export class WebhookApi {
     });
   }
 
-  // Enviar múltiples documentos de forma asíncrona
+  // Enviar múltiples documentos de forma asíncrona con límite de concurrencia
   static async uploadMultipleDocuments(documents: UploadDocumentOptions[]): Promise<number> {
     if (!this.hasWebhook()) {
       console.warn('No hay webhook configurado');
       return 0;
     }
 
-    // Enviar todos los documentos en paralelo
-    const results = await Promise.allSettled(
-      documents.map(doc => this.uploadDocument(doc))
-    );
+    if (documents.length === 0) {
+      return 0;
+    }
 
-    // Contar éxitos
-    const successCount = results.filter(
-      result => result.status === 'fulfilled' && result.value === true
-    ).length;
+    console.log(`📤 Subiendo ${documents.length} documentos en paralelo...`);
 
+    // Limitar concurrencia a 5 documentos simultáneos para no saturar la red
+    const batchSize = 5;
+    let successCount = 0;
+
+    for (let i = 0; i < documents.length; i += batchSize) {
+      const batch = documents.slice(i, i + batchSize);
+      const batchNum = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(documents.length / batchSize);
+      
+      console.log(`📦 Procesando lote ${batchNum}/${totalBatches} (${batch.length} documentos)`);
+      
+      // Procesar batch en paralelo
+      const results = await Promise.allSettled(
+        batch.map(doc => this.uploadDocument(doc))
+      );
+
+      // Contar éxitos del batch
+      const batchSuccess = results.filter(
+        result => result.status === 'fulfilled' && result.value === true
+      ).length;
+      
+      successCount += batchSuccess;
+      console.log(`✅ Lote ${batchNum}: ${batchSuccess}/${batch.length} exitosos`);
+
+      // Pequeña pausa entre batches
+      if (i + batchSize < documents.length) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+
+    console.log(`✅ Upload completo: ${successCount}/${documents.length} documentos subidos`);
     return successCount;
   }
 

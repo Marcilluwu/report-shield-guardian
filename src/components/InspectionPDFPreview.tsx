@@ -203,7 +203,7 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
             .toUpperCase();
         };
 
-        // Enviar todas las fotos al endpoint con numeración por sección
+        // Preparar todas las fotos para subida asíncrona
         const photosBySection = {
           'Entorno_Trabajo': data.workEnvironment.photos,
           'Estado_Herramientas': data.toolsStatus.photos,
@@ -214,15 +214,17 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
           }, {} as Record<string, typeof data.workEnvironment.photos>)
         };
 
+        // Crear array con todas las fotos a subir
+        const allPhotoUploads = [];
         for (const [section, photos] of Object.entries(photosBySection)) {
-          let photoNum = 1;
-          for (const photo of photos) {
+          photos.forEach((photo, index) => {
+            const photoNum = index + 1;
             const identifier = photo.comment || photoNum.toString();
-            await WebhookApi.uploadDocument({
+            allPhotoUploads.push({
               file: photo.file,
               filename: `${baseFileName}.${section}.${identifier}.jpg`,
               projectName,
-              type: 'pdf',
+              type: 'pdf' as const,
               metadata: {
                 expedientNumber: data.expedientNumber,
                 comment: photo.comment,
@@ -230,8 +232,20 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
                 photoNumber: photoNum
               }
             });
-            photoNum++;
-          }
+          });
+        }
+
+        // Subir todas las fotos en paralelo
+        const successfulUploads = await WebhookApi.uploadMultipleDocuments(allPhotoUploads);
+        console.log(`✅ ${successfulUploads} de ${allPhotoUploads.length} fotos subidas`);
+        
+        if (successfulUploads < allPhotoUploads.length) {
+          const failedCount = allPhotoUploads.length - successfulUploads;
+          toast({
+            title: '⚠️ Algunas fotos no se subieron',
+            description: `${failedCount} foto(s) se guardarán en cola para reintento automático`,
+            variant: 'default'
+          });
         }
 
         toast({

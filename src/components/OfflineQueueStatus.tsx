@@ -120,6 +120,19 @@ export const OfflineQueueStatus = () => {
                 <Button
                   onClick={async () => {
                     try {
+                      // Importar el servicio de sincronización dinámicamente
+                      const { SyncService } = await import('@/services/syncService');
+                      
+                      // Verificar si hay sincronización en progreso
+                      if (SyncService.isCurrentlyProcessing()) {
+                        toast({
+                          title: '⚠️ Sincronización en progreso',
+                          description: 'Espera a que termine la sincronización antes de limpiar',
+                          variant: 'default',
+                        });
+                        return;
+                      }
+                      
                       await clearOutbox();
                       try {
                         const registration = await navigator.serviceWorker.ready;

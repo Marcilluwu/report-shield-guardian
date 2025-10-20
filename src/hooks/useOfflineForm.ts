@@ -256,37 +256,57 @@ export function useOfflineForm(): UseOfflineFormReturn {
   // =====================================================
 
   const retrySync = useCallback(async () => {
-    if (!navigator.onLine) {
-      toast({
-        title: '🔴 Sin conexión',
-        description: 'No es posible sincronizar sin conexión a internet.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
+    console.log('🔄 Intentando sincronización manual...');
+    
     try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-form-queue');
+      // Importar el servicio de sincronización dinámicamente
+      const { SyncService } = await import('@/services/syncService');
       
+      // Verificar conectividad primero
+      const hasConnection = await SyncService.checkConnectivity();
+      
+      if (!hasConnection) {
+        toast({
+          title: 'Sin conexión',
+          description: 'No se puede sincronizar sin conexión a internet',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       toast({
-        title: '🔄 Sincronizando...',
-        description: 'Se están enviando los datos pendientes.',
+        title: 'Sincronizando...',
+        description: 'Procesando documentos pendientes',
       });
+
+      // Procesar el outbox
+      const result = await SyncService.processOutbox();
+      
+      // Refrescar el estado
+      await refreshPendingEntries();
+      
+      if (result.success > 0) {
+        toast({
+          title: '✅ Sincronización exitosa',
+          description: `${result.success} documento(s) sincronizado(s)${result.failed > 0 ? `, ${result.failed} fallido(s)` : ''}`,
+        });
+      } else if (result.failed > 0) {
+        toast({
+          title: '⚠️ Sincronización con errores',
+          description: `${result.failed} documento(s) no se pudieron sincronizar`,
+          variant: 'destructive',
+        });
+      }
+      
     } catch (error) {
-      console.error('Error al activar sync:', error);
-      // Fallback: pedir al SW que procese la outbox ahora
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        registration.active?.postMessage({ type: 'PROCESS_OUTBOX' });
-      } catch {}
+      console.error('Error al reintentar sincronización:', error);
       toast({
-        title: '❌ Error',
-        description: 'No se pudo iniciar la sincronización.',
-        variant: 'destructive'
+        title: 'Error',
+        description: 'No se pudo completar la sincronización',
+        variant: 'destructive',
       });
     }
-  }, []);
+  }, [refreshPendingEntries]);
 
   return {
     isOnline,
