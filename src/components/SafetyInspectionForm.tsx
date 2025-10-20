@@ -284,7 +284,7 @@ export const SafetyInspectionForm = () => {
     const expedient = inspectionData.expedientNumber || 'SinExpediente';
     const workName = inspectionData.work.name || 'SinObra';
     
-    return `${expedient}.${workName}_${year}_${day}_${month}.${extension}`;
+    return `${expedient}. ${workName}_${year}_${day}_${month}.${extension}`;
   };
 
   // =====================================================
@@ -401,7 +401,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         }
       });
 
-      // Enviar todas las fotos al endpoint como payloads separados
+      // Enviar todas las fotos al endpoint como payloads separados con contador
       const baseFilename = generateFilename('').replace(/\.\w+$/, '');
       const allPhotos = [
         ...inspectionData.workEnvironment.photos.map(p => ({ ...p, section: 'Entorno_Trabajo' })),
@@ -411,10 +411,11 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         )
       ];
 
+      let photoCounter = 1;
       for (const photo of allPhotos) {
         await WebhookApi.uploadDocument({
           file: photo.file,
-          filename: `${baseFilename}_${photo.section}_${photo.id}.jpg`,
+          filename: `${baseFilename}.${photo.section}.${photoCounter}.jpg`,
           projectName,
           type: 'pdf',
           metadata: {
@@ -423,6 +424,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
             section: photo.section
           }
         });
+        photoCounter++;
       }
       
       toast({
