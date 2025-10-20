@@ -21,10 +21,17 @@ interface GenerateDualOptions extends PDFGenerationOptions {
   signatureDataUrl?: string;
 }
 
+interface GeneratePDFResult {
+  success: boolean;
+  blob?: Blob;
+  filename?: string;
+  projectFolder?: string;
+}
+
 interface UsePDFGeneratorReturn {
   isGenerating: boolean;
   progress: number;
-  generatePDF: (elementRef: React.RefObject<HTMLElement>, options?: PDFGenerationOptions) => Promise<boolean>;
+  generatePDF: (elementRef: React.RefObject<HTMLElement>, options?: PDFGenerationOptions) => Promise<GeneratePDFResult>;
   generateDualDocument: (elementRef: React.RefObject<HTMLElement>, options: GenerateDualOptions) => Promise<boolean>;
   printDocument: (elementRef: React.RefObject<HTMLElement>) => void;
 }
@@ -120,7 +127,7 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
   const generatePDF = useCallback(async (
     elementRef: React.RefObject<HTMLElement>,
     options: PDFGenerationOptions = {}
-  ): Promise<boolean> => {
+  ): Promise<GeneratePDFResult> => {
     const {
       filename = `documento-${new Date().toISOString().split('T')[0]}.pdf`,
       quality = 1.0,
@@ -137,7 +144,7 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
           description: 'No se encontró el elemento para generar PDF',
           variant: 'destructive',
         });
-        return false;
+        return { success: false };
       }
 
       setProgress(20);
@@ -237,45 +244,19 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         
         if (saved) {
           setProgress(95);
-          
-          if (WebhookApi.hasWebhook()) {
-            try {
-              await WebhookApi.uploadDocument({
-                file: blob,
-                filename,
-                projectName: projectFolder,
-                type: 'pdf'
-              });
-            } catch (error) {
-              console.error('Error enviando PDF al webhook:', error);
-            }
-          }
-          
           setProgress(100);
           toast({
             title: 'PDF guardado exitosamente',
             description: `El archivo "${filename}" se guardó en docs generated/${projectFolder}/`,
           });
-          return true;
+          
+          // Retornar blob para que se maneje el envío al webhook externamente
+          return { success: true, blob, filename, projectFolder };
         }
       }
       
       // Fallback: descarga tradicional
       pdf.save(filename);
-      
-      if (WebhookApi.hasWebhook()) {
-        try {
-          await WebhookApi.uploadDocument({
-            file: blob,
-            filename,
-            projectName: projectFolder,
-            type: 'pdf'
-          });
-        } catch (error) {
-          console.error('Error enviando PDF al webhook:', error);
-        }
-      }
-
       setProgress(100);
 
       toast({
@@ -283,7 +264,8 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         description: `El archivo "${filename}" se ha descargado correctamente.`,
       });
 
-      return true;
+      // Retornar blob para que se maneje el envío al webhook externamente
+      return { success: true, blob, filename, projectFolder };
 
     } catch (error) {
       console.error('Error al generar PDF:', error);
@@ -298,7 +280,7 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         variant: 'destructive',
       });
 
-      return false;
+      return { success: false };
     } finally {
       setIsGenerating(false);
       setProgress(0);
@@ -415,38 +397,80 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
           projectFolder,
           signatureDataUrl,
           docxFilename
-        ).then(() => {
+        ).then((blob) => {
           console.log('✅ DOCX generado correctamente');
-          return true;
+          return { success: true, blob, filename: docxFilename, type: 'docx' as const };
         }).catch((error) => {
           console.error('❌ Error generando DOCX:', error);
-          return false;
+          return { success: false, blob: undefined, filename: undefined, type: 'docx' as const };
         }),
         
         generatePDF(elementRef, {
           filename: pdfFilename,
           projectFolder
-        }).then((success) => {
-          console.log(success ? '✅ PDF generado correctamente' : '❌ Error generando PDF');
-          return success;
+        }).then((result) => {
+          if (result.success && result.blob) {
+            console.log('✅ PDF generado correctamente');
+            return { success: true, blob: result.blob, filename: result.filename!, type: 'pdf' as const };
+          }
+          console.log('❌ Error generando PDF');
+          return { success: false, blob: undefined, filename: undefined, type: 'pdf' as const };
         }).catch((error) => {
           console.error('❌ Error generando PDF:', error);
-          return false;
+          return { success: false, blob: undefined, filename: undefined, type: 'pdf' as const };
         })
       ]);
 
+      setProgress(90);
+
+      // Enviar documentos generados al webhook/outbox de forma asíncrona
+      const uploadPromises = [];
+      
+      if (docxResult.success && docxResult.blob && WebhookApi.hasWebhook()) {
+        uploadPromises.push(
+          WebhookApi.uploadDocument({
+            file: docxResult.blob,
+            filename: docxResult.filename!,
+            projectName: projectFolder,
+            type: 'docx'
+          }).catch(error => {
+            console.error('Error enviando DOCX:', error);
+            return false;
+          })
+        );
+      }
+
+      if (pdfResult.success && pdfResult.blob && WebhookApi.hasWebhook()) {
+        uploadPromises.push(
+          WebhookApi.uploadDocument({
+            file: pdfResult.blob,
+            filename: pdfResult.filename!,
+            projectName: projectFolder,
+            type: 'pdf'
+          }).catch(error => {
+            console.error('Error enviando PDF:', error);
+            return false;
+          })
+        );
+      }
+
+      // Esperar a que se envíen o encolen los documentos
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
+
       setProgress(100);
 
-      if (docxResult && pdfResult) {
+      if (docxResult.success && pdfResult.success) {
         toast({
           title: 'Documentos generados exitosamente',
-          description: `Se han creado los archivos PDF y DOCX`,
+          description: `Se han creado y enviado los archivos PDF y DOCX`,
         });
         return true;
-      } else if (docxResult || pdfResult) {
+      } else if (docxResult.success || pdfResult.success) {
         toast({
           title: 'Generación parcial',
-          description: `Solo se generó ${docxResult ? 'DOCX' : 'PDF'} correctamente`,
+          description: `Solo se generó ${docxResult.success ? 'DOCX' : 'PDF'} correctamente`,
           variant: 'destructive',
         });
         return false;

@@ -60,7 +60,7 @@ export async function generateDocx(
   folderName?: string,
   signatureDataUrl?: string,
   fileName?: string
-): Promise<void> {
+): Promise<Blob> {
   try {
     // Convertir imágenes a buffer usando ArrayBuffer directamente
     const imageBuffers: { [key: string]: ArrayBuffer } = {};
@@ -469,33 +469,13 @@ export async function generateDocx(
       
       if (saved) {
         console.log(`Documento guardado en docs generated/${projectFolder}/`);
-        
-        // Enviar a webhook si está configurado
-        if (WebhookApi.hasWebhook()) {
-          await WebhookApi.uploadDocument({
-            file: blob,
-            filename: docxFileName,
-            projectName: projectFolder,
-            type: 'docx'
-          });
-        }
-        
-        return;
+        return blob; // Retornar blob para envío externo al webhook
       }
     }
     
     // Fallback: método tradicional
     saveAs(blob, docxFileName);
-    
-    // Enviar a webhook si está configurado
-    if (WebhookApi.hasWebhook()) {
-      await WebhookApi.uploadDocument({
-        file: blob,
-        filename: docxFileName,
-        projectName: projectFolder,
-        type: 'docx'
-      });
-    }
+    return blob; // Retornar blob para envío externo al webhook
 
   } catch (error) {
     console.error('Error generando DOCX:', error);
