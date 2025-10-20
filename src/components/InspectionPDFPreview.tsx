@@ -194,12 +194,22 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
           }
         });
 
+        // Función para sanitizar nombres de archivo (remover espacios y caracteres especiales)
+        const sanitizeFilename = (str: string): string => {
+          return str
+            .replace(/\s+/g, '_')  // Reemplazar espacios con guiones bajos
+            .replace(/[^a-zA-Z0-9_-]/g, '')  // Remover caracteres especiales
+            .replace(/_+/g, '_')  // Evitar guiones bajos múltiples
+            .toUpperCase();
+        };
+
         // Enviar todas las fotos al endpoint con numeración por sección
         const photosBySection = {
           'Entorno_Trabajo': data.workEnvironment.photos,
           'Estado_Herramientas': data.toolsStatus.photos,
           ...data.vans.reduce((acc, van) => {
-            acc[`Furgoneta_${van.licensePlate}`] = van.photos;
+            const sanitizedPlate = sanitizeFilename(van.licensePlate || 'SinMatricula');
+            acc[`Furgoneta_${sanitizedPlate}`] = van.photos;
             return acc;
           }, {} as Record<string, typeof data.workEnvironment.photos>)
         };
@@ -427,13 +437,15 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
               </div>
             )}
 
-            {/* Vans Status - Grouped by License Plate */}
+            {/* Vans Status - Each van in its own page */}
             {data.vans.length > 0 && data.vans.some(van => van.photos.length > 0) && (
-              <div className="pdf-page" style={{ padding: '15mm' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>6. Estado de las Furgonetas</h2>
+              <>
                 {data.vans.map((van, vanIndex) => (
                   van.photos.length > 0 && (
-                    <div key={van.id} style={{ marginBottom: '20px' }}>
+                    <div key={van.id} className="pdf-page" style={{ padding: '15mm' }}>
+                      {vanIndex === 0 && (
+                        <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>6. Estado de las Furgonetas</h2>
+                      )}
                       <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
                         Matrícula de la furgoneta {vanIndex + 1}: {van.licensePlate || 'Sin especificar'}
                       </h3>
@@ -456,7 +468,7 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
                     </div>
                   )
                 ))}
-              </div>
+              </>
             )}
 
             {/* Signature section */}
