@@ -92,10 +92,33 @@ export async function generateDocx(
       }
     }
 
-    for (const photo of allPhotos) {
-      const response = await fetch(photo.url);
-      const buffer = await response.arrayBuffer();
-      imageBuffers[photo.id] = buffer;
+    // Procesar todas las fotos en paralelo con manejo de errores individual
+    const photoPromises = allPhotos.map(async (photo) => {
+      try {
+        const response = await fetch(photo.url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const buffer = await response.arrayBuffer();
+        return { id: photo.id, buffer, success: true };
+      } catch (error) {
+        console.error(`Error cargando foto ${photo.id}:`, error);
+        return { id: photo.id, buffer: null, success: false };
+      }
+    });
+
+    const photoResults = await Promise.all(photoPromises);
+    
+    // Almacenar solo las fotos que se cargaron exitosamente
+    photoResults.forEach(result => {
+      if (result.success && result.buffer) {
+        imageBuffers[result.id] = result.buffer;
+      }
+    });
+
+    const failedPhotos = photoResults.filter(r => !r.success).length;
+    if (failedPhotos > 0) {
+      console.warn(`${failedPhotos} foto(s) no se pudieron cargar`);
     }
 
     // Crear elementos del documento
@@ -310,8 +333,14 @@ export async function generateDocx(
       })
     );
 
-    // Fotos con comentarios
+    // Fotos con comentarios - solo incluir las que se cargaron exitosamente
     allPhotos.forEach((photo, index) => {
+      // Verificar si la foto se cargó exitosamente
+      if (!imageBuffers[photo.id]) {
+        console.warn(`Saltando foto ${photo.id} - no se pudo cargar`);
+        return;
+      }
+
       documentChildren.push(
         new Paragraph({
           children: [
@@ -331,22 +360,37 @@ export async function generateDocx(
         })
       );
 
-      documentChildren.push(
-        new Paragraph({
-          children: [
-            new ImageRun({
-              data: imageBuffers[photo.id],
-              transformation: {
-                width: 400,
-                height: 300
-              },
-              type: "jpg"
-            })
-          ],
-          alignment: "center",
-          spacing: { after: 300 }
-        })
-      );
+      try {
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: imageBuffers[photo.id],
+                transformation: {
+                  width: 400,
+                  height: 300
+                },
+                type: "jpg"
+              })
+            ],
+            alignment: "center",
+            spacing: { after: 300 }
+          })
+        );
+      } catch (error) {
+        console.error(`Error agregando imagen ${photo.id} al documento:`, error);
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: '[Error: No se pudo incluir la imagen]',
+                italics: true
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+      }
     });
 
     // Firma

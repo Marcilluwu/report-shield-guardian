@@ -477,24 +477,38 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         }, {} as Record<string, typeof inspectionData.workEnvironment.photos>)
       };
 
+      // Enviar fotos con manejo de errores individual
+      let successCount = 0;
+      let failCount = 0;
+
       for (const [section, photos] of Object.entries(photosBySection)) {
         let photoNum = 1;
         for (const photo of photos) {
-          const identifier = photo.comment || photoNum.toString();
-          await WebhookApi.uploadDocument({
-            file: photo.file,
-            filename: `${baseFilename}.${section}.${identifier}.jpg`,
-            projectName,
-            type: 'pdf',
-            metadata: {
-              expedientNumber: inspectionData.expedientNumber,
-              comment: photo.comment,
-              section: section,
-              photoNumber: photoNum
-            }
-          });
+          try {
+            const identifier = photo.comment || photoNum.toString();
+            await WebhookApi.uploadDocument({
+              file: photo.file,
+              filename: `${baseFilename}.${section}.${identifier}.jpg`,
+              projectName,
+              type: 'pdf',
+              metadata: {
+                expedientNumber: inspectionData.expedientNumber,
+                comment: photo.comment,
+                section: section,
+                photoNumber: photoNum
+              }
+            });
+            successCount++;
+          } catch (error) {
+            console.error(`Error subiendo foto ${section} #${photoNum}:`, error);
+            failCount++;
+          }
           photoNum++;
         }
+      }
+
+      if (failCount > 0) {
+        console.warn(`${failCount} foto(s) no se pudieron enviar al webhook`);
       }
       
       toast({
