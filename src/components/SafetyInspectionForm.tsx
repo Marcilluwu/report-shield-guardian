@@ -282,9 +282,9 @@ export const SafetyInspectionForm = () => {
     const day = String(date.getDate()).padStart(2, '0');
     
     const expedient = inspectionData.expedientNumber || 'SinExpediente';
-    const folder = selectedFolder || inspectionData.work.name || 'SinCarpeta';
+    const workName = inspectionData.work.name || 'SinObra';
     
-    return `(${expedient} ${folder})_${year}_${day}_${month}.${extension}`;
+    return `${expedient}.${workName}_${year}_${day}_${month}.${extension}`;
   };
 
   // =====================================================
@@ -401,8 +401,9 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         }
       });
 
-      // Enviar todas las fotos al endpoint
-      const baseFilename = generateFilename('').replace('.', '');
+      // Enviar todas las fotos al endpoint en una carpeta
+      const baseFilename = generateFilename('').replace(/\.\w+$/, '');
+      const photoFolder = `${baseFilename}/Fotos`;
       const allPhotos = [
         ...inspectionData.workEnvironment.photos.map(p => ({ ...p, section: 'Entorno_Trabajo' })),
         ...inspectionData.toolsStatus.photos.map(p => ({ ...p, section: 'Estado_Herramientas' })),
@@ -414,13 +415,14 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
       for (const photo of allPhotos) {
         await WebhookApi.uploadDocument({
           file: photo.file,
-          filename: `${baseFilename}_${photo.section}_${photo.id}.jpg`,
+          filename: `${photoFolder}/${photo.section}_${photo.id}.jpg`,
           projectName,
           type: 'pdf',
           metadata: {
             expedientNumber: inspectionData.expedientNumber,
             comment: photo.comment,
-            section: photo.section
+            section: photo.section,
+            folder: photoFolder
           }
         });
       }
@@ -542,6 +544,8 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
             <FolderManager
               selectedFolder={selectedFolder}
               onFolderChange={setSelectedFolder}
+              expedientNumber={inspectionData.expedientNumber}
+              workName={inspectionData.work.name}
             />
           </CardContent>
         </Card>

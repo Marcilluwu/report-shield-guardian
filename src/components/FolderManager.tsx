@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { FolderPlus, Folder } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface FolderManagerProps {
   selectedFolder: string;
   onFolderChange: (folder: string) => void;
+  expedientNumber?: string;
+  workName?: string;
 }
 
-export const FolderManager: React.FC<FolderManagerProps> = ({ selectedFolder, onFolderChange }) => {
+export const FolderManager: React.FC<FolderManagerProps> = ({ 
+  selectedFolder, 
+  onFolderChange,
+  expedientNumber,
+  workName 
+}) => {
   const [folders, setFolders] = useState<string[]>([]);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     // Cargar carpetas existentes del localStorage
@@ -26,35 +29,35 @@ export const FolderManager: React.FC<FolderManagerProps> = ({ selectedFolder, on
     }
   }, [selectedFolder, onFolderChange]);
 
-  const createFolder = () => {
-    if (!newFolderName.trim()) {
+  const createFolderFromWorkData = () => {
+    if (!expedientNumber?.trim() || !workName?.trim()) {
       toast({
         title: 'Error',
-        description: 'El nombre de la carpeta no puede estar vacío',
+        description: 'Debes completar el N° de Expediente y el Nombre de Obra',
         variant: 'destructive'
       });
       return;
     }
 
-    if (folders.includes(newFolderName.trim())) {
+    const folderName = `${expedientNumber.trim()}. ${workName.trim()}`;
+    
+    if (folders.includes(folderName)) {
       toast({
-        title: 'Error',
-        description: 'Ya existe una carpeta con ese nombre',
-        variant: 'destructive'
+        title: 'Carpeta ya existe',
+        description: `La carpeta "${folderName}" ya fue creada`
       });
+      onFolderChange(folderName);
       return;
     }
 
-    const updatedFolders = [...folders, newFolderName.trim()];
+    const updatedFolders = [...folders, folderName];
     setFolders(updatedFolders);
     localStorage.setItem('reportFolders', JSON.stringify(updatedFolders));
-    onFolderChange(newFolderName.trim());
-    setNewFolderName('');
-    setIsDialogOpen(false);
+    onFolderChange(folderName);
     
     toast({
       title: 'Carpeta creada',
-      description: `La carpeta "${newFolderName.trim()}" ha sido creada correctamente`
+      description: `La carpeta "${folderName}" ha sido creada correctamente`
     });
   };
 
@@ -79,39 +82,20 @@ export const FolderManager: React.FC<FolderManagerProps> = ({ selectedFolder, on
             </SelectContent>
           </Select>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <FolderPlus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Crear nueva carpeta</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="folder-name">Nombre de la carpeta</Label>
-                  <Input
-                    id="folder-name"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="Ej: Proyecto ABC"
-                    onKeyPress={(e) => e.key === 'Enter' && createFolder()}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={createFolder}>
-                    Crear carpeta
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            variant="outline" 
+            onClick={createFolderFromWorkData}
+            disabled={!expedientNumber || !workName}
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Nombre Obra
+          </Button>
         </div>
+        {expedientNumber && workName && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Vista previa: {expedientNumber}. {workName}
+          </p>
+        )}
       </div>
     </div>
   );
