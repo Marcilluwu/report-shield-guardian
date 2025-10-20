@@ -153,14 +153,26 @@ export class WebhookApi {
     }
   }
 
-  // Verificar conexión real
+  // Verificar conexión real usando webhook
   private static async checkConnection(): Promise<boolean> {
     try {
-      const response = await fetch('/ping.txt', {
-        method: 'HEAD',
-        cache: 'no-cache'
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      const response = await fetch('https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ping: true, timestamp: Date.now() }),
+        cache: 'no-cache',
+        signal: controller.signal
       });
-      return response.ok;
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) return false;
+      
+      const text = await response.text();
+      return text.trim() === 'PONG';
     } catch {
       return false;
     }
@@ -181,19 +193,22 @@ export class WebhookApi {
     });
   }
 
-  // Enviar múltiples documentos
+  // Enviar múltiples documentos de forma asíncrona
   static async uploadMultipleDocuments(documents: UploadDocumentOptions[]): Promise<number> {
     if (!this.hasWebhook()) {
       console.warn('No hay webhook configurado');
       return 0;
     }
 
-    let successCount = 0;
+    // Enviar todos los documentos en paralelo
+    const results = await Promise.allSettled(
+      documents.map(doc => this.uploadDocument(doc))
+    );
 
-    for (const doc of documents) {
-      const success = await this.uploadDocument(doc);
-      if (success) successCount++;
-    }
+    // Contar éxitos
+    const successCount = results.filter(
+      result => result.status === 'fulfilled' && result.value === true
+    ).length;
 
     return successCount;
   }

@@ -38,30 +38,42 @@ export function useOfflineForm(): UseOfflineFormReturn {
   // =====================================================
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast({
-        title: '🟢 Conexión restaurada',
-        description: 'Sincronizando datos pendientes...',
-      });
-      retrySync();
+    let intervalId: number;
+    let lastStatus = navigator.onLine;
+
+    const checkAndUpdateConnection = async () => {
+      const currentStatus = await checkConnection();
+      
+      if (currentStatus !== lastStatus) {
+        lastStatus = currentStatus;
+        setIsOnline(currentStatus);
+        
+        if (currentStatus) {
+          console.log('🟢 Conexión restaurada');
+          toast({
+            title: '🟢 Conexión restaurada',
+            description: 'Sincronizando datos pendientes...'
+          });
+          retrySync();
+        } else {
+          console.log('🔴 Sin conexión');
+          toast({
+            title: '🔴 Sin conexión',
+            description: 'Los datos se guardarán localmente',
+            variant: 'destructive'
+          });
+        }
+      }
     };
 
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast({
-        title: '🔴 Sin conexión',
-        description: 'Los datos se guardarán localmente y se sincronizarán cuando vuelva la conexión.',
-        variant: 'destructive'
-      });
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    // Verificar inmediatamente
+    checkAndUpdateConnection();
+    
+    // Verificar cada 5 segundos
+    intervalId = window.setInterval(checkAndUpdateConnection, 5000);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      if (intervalId) clearInterval(intervalId);
     };
   }, []);
 
@@ -293,11 +305,23 @@ export function useOfflineForm(): UseOfflineFormReturn {
 
 async function checkConnection(): Promise<boolean> {
   try {
-    const response = await fetch('/ping.txt', {
-      method: 'HEAD',
-      cache: 'no-cache'
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+    
+    const response = await fetch('https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ping: true, timestamp: Date.now() }),
+      cache: 'no-cache',
+      signal: controller.signal
     });
-    return response.ok;
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) return false;
+    
+    const text = await response.text();
+    return text.trim() === 'PONG';
   } catch {
     return false;
   }
