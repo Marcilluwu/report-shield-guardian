@@ -1,6 +1,3 @@
-// hooks/usePDFGenerator.ts
-// ✅ Hook personalizado para generar PDFs de manera robusta
-
 import { useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -14,7 +11,7 @@ interface PDFGenerationOptions {
   filename?: string;
   quality?: number;
   scale?: number;
-  projectFolder?: string; // Carpeta del proyecto dentro de "docs generated/"
+  projectFolder?: string;
 }
 
 interface GenerateDualOptions extends PDFGenerationOptions {
@@ -32,18 +29,45 @@ interface UsePDFGeneratorReturn {
   printDocument: (elementRef: React.RefObject<HTMLElement>) => void;
 }
 
+// Función auxiliar para precargar todas las imágenes antes de generar PDF
+const preloadImages = async (element: HTMLElement): Promise<void> => {
+  const images = Array.from(element.querySelectorAll('img'));
+  const imagePromises = images.map((img) => {
+    return new Promise<void>((resolve, reject) => {
+      if (img.complete) {
+        resolve();
+      } else {
+        const timeout = setTimeout(() => {
+          console.warn('Timeout cargando imagen:', img.src);
+          resolve(); // Resolver de todos modos para no bloquear
+        }, 30000); // 30 segundos timeout
+
+        img.onload = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+        img.onerror = () => {
+          clearTimeout(timeout);
+          console.error('Error cargando imagen:', img.src);
+          resolve(); // Resolver de todos modos
+        };
+      }
+    });
+  });
+
+  await Promise.all(imagePromises);
+};
+
 export const usePDFGenerator = (): UsePDFGeneratorReturn => {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   
-  // ✅ Configuración optimizada para html2canvas
   const getHtml2CanvasConfig = (scale: number = 2) => {
-    // Detectar si es móvil y ajustar escala para resolución consistente
     const isMobile = window.innerWidth < 768;
     const devicePixelRatio = window.devicePixelRatio || 1;
     
-    // En móvil, usar escala más alta para compensar viewport pequeño
-    const adjustedScale = isMobile ? Math.max(scale * 1.5, 3) : scale;
+    // Ajustar escala según dispositivo
+    const adjustedScale = isMobile ? Math.min(scale * 1.2, 2.5) : scale;
     
     return {
       scale: adjustedScale,
@@ -52,17 +76,24 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       backgroundColor: '#ffffff',
       logging: false,
       removeContainer: true,
-      imageTimeout: 15000,
+      imageTimeout: 30000, // 30 segundos para móviles lentos
       height: null,
       width: null,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: isMobile ? 1024 : window.innerWidth, // Forzar ancho desktop en móvil
+      windowWidth: isMobile ? 1024 : window.innerWidth,
       windowHeight: isMobile ? 1440 : window.innerHeight,
+      onclone: (clonedDoc: Document) => {
+        // Asegurar que todas las imágenes tengan atributos correctos
+        const clonedImages = clonedDoc.querySelectorAll('img');
+        clonedImages.forEach((img) => {
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+        });
+      }
     };
   };
 
-  // ✅ Función principal para generar PDF
   const generatePDF = useCallback(async (
     elementRef: React.RefObject<HTMLElement>,
     options: PDFGenerationOptions = {}
@@ -77,7 +108,6 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       setIsGenerating(true);
       setProgress(10);
 
-      // ✅ Validar referencia del elemento
       if (!elementRef.current) {
         toast({
           title: 'Error',
@@ -89,59 +119,94 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
 
       setProgress(20);
 
-      // ¿Existen páginas definidas explícitamente?
+      // Precargar todas las imágenes primero
+      await preloadImages(elementRef.current);
+      
+      setProgress(30);
+
       const container = elementRef.current as HTMLElement;
       const pageNodes = container.querySelectorAll('.pdf-page');
 
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      const pdf = new jsPDF({ 
+        orientation: 'portrait', 
+        unit: 'mm', 
+        format: 'a4', 
+        compress: true 
+      });
+      
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
       if (pageNodes.length > 0) {
-        // Generación página a página para evitar cortes de imágenes
-        let first = true;
+        // Procesar página por página
+        let pageIndex = 0;
         for (const node of Array.from(pageNodes)) {
-          const canvas = await html2canvas(node as HTMLElement, getHtml2CanvasConfig(scale));
-          if (!canvas) throw new Error('No se pudo generar el canvas de una página');
+          setProgress(30 + (pageIndex / pageNodes.length) * 50);
+          
+          const canvas = await html2canvas(
+            node as HTMLElement, 
+            getHtml2CanvasConfig(scale)
+          );
+          
+          if (!canvas) {
+            throw new Error('No se pudo generar el canvas de una página');
+          }
 
-          const imgData = canvas.toDataURL('image/png', quality);
-          if (!imgData || imgData === 'data:,') throw new Error('No se pudieron obtener los datos de la imagen');
+          const imgData = canvas.toDataURL('image/jpeg', quality);
+          
+          if (!imgData || imgData === 'data:,') {
+            throw new Error('No se pudieron obtener los datos de la imagen');
+          }
 
-          const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+          const ratio = Math.min(
+            pageWidth / canvas.width, 
+            pageHeight / canvas.height
+          );
+          
           const imgW = canvas.width * ratio;
           const imgH = canvas.height * ratio;
           const offsetX = (pageWidth - imgW) / 2;
           const offsetY = (pageHeight - imgH) / 2;
 
-          if (!first) pdf.addPage();
-          pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgW, imgH, '', 'FAST');
-          first = false;
+          if (pageIndex > 0) {
+            pdf.addPage();
+          }
+          
+          pdf.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH, '', 'FAST');
+          
+          pageIndex++;
         }
       } else {
-        // Fallback: una sola captura larga (puede cortar imágenes)
+        // Fallback: captura completa
         const canvas = await html2canvas(container, getHtml2CanvasConfig(scale));
-        if (!canvas) throw new Error('No se pudo generar el canvas del documento');
+        
+        if (!canvas) {
+          throw new Error('No se pudo generar el canvas del documento');
+        }
 
-        const imgData = canvas.toDataURL('image/png', quality);
-        if (!imgData || imgData === 'data:,') throw new Error('No se pudieron obtener los datos de la imagen');
+        const imgData = canvas.toDataURL('image/jpeg', quality);
+        
+        if (!imgData || imgData === 'data:,') {
+          throw new Error('No se pudieron obtener los datos de la imagen');
+        }
 
         const imgWidth = pageWidth;
         const imgHeight = (canvas.height * pageWidth) / canvas.width;
         let position = 0;
         let remainingHeight = imgHeight;
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
+        
         while (remainingHeight > pageHeight) {
           remainingHeight -= pageHeight;
           position = remainingHeight - imgHeight;
           pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
         }
       }
 
-      setProgress(90);
+      setProgress(85);
 
-      // ✅ Intentar guardar usando File System Access API
       const blob = pdf.output('blob');
       const projectFolder = options.projectFolder || ConfigManager.getRuta();
       
@@ -151,14 +216,17 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         if (saved) {
           setProgress(95);
           
-          // Enviar a webhook si está configurado
           if (WebhookApi.hasWebhook()) {
-            await WebhookApi.uploadDocument({
-              file: blob,
-              filename,
-              projectName: projectFolder,
-              type: 'pdf'
-            });
+            try {
+              await WebhookApi.uploadDocument({
+                file: blob,
+                filename,
+                projectName: projectFolder,
+                type: 'pdf'
+              });
+            } catch (error) {
+              console.error('Error enviando PDF al webhook:', error);
+            }
           }
           
           setProgress(100);
@@ -167,23 +235,23 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
             description: `El archivo "${filename}" se guardó en docs generated/${projectFolder}/`,
           });
           return true;
-        } else {
-          // Si falla, usar método tradicional
-          console.warn('Guardado automático falló, usando descarga tradicional');
         }
       }
       
-      // Fallback: método tradicional de descarga
+      // Fallback: descarga tradicional
       pdf.save(filename);
       
-      // Enviar a webhook si está configurado
       if (WebhookApi.hasWebhook()) {
-        await WebhookApi.uploadDocument({
-          file: blob,
-          filename,
-          projectName: projectFolder,
-          type: 'pdf'
-        });
+        try {
+          await WebhookApi.uploadDocument({
+            file: blob,
+            filename,
+            projectName: projectFolder,
+            type: 'pdf'
+          });
+        } catch (error) {
+          console.error('Error enviando PDF al webhook:', error);
+        }
       }
 
       setProgress(100);
@@ -215,7 +283,6 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
     }
   }, []);
 
-  // ✅ Función para imprimir documento
   const printDocument = useCallback((elementRef: React.RefObject<HTMLElement>) => {
     try {
       if (!elementRef.current) {
@@ -227,7 +294,6 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         return;
       }
 
-      // ✅ Crear ventana de impresión
       const printWindow = window.open('', '_blank');
       
       if (!printWindow) {
@@ -239,10 +305,8 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         return;
       }
 
-      // ✅ Clonar contenido para impresión
       const printContent = elementRef.current.cloneNode(true) as HTMLElement;
       
-      // ✅ Crear documento HTML para impresión
       const printHTML = `
         <!DOCTYPE html>
         <html lang="es">
@@ -293,7 +357,6 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
     }
   }, []);
 
-  // ✅ Función para generar PDF y DOCX simultáneamente
   const generateDualDocument = useCallback(async (
     elementRef: React.RefObject<HTMLElement>,
     options: GenerateDualOptions
@@ -311,12 +374,10 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       setIsGenerating(true);
       setProgress(5);
 
-      // Generar nombre base sin extensión
       const baseFilename = filename.replace(/\.(pdf|docx)$/i, '');
       const pdfFilename = filename.endsWith('.pdf') ? filename : `${baseFilename}.pdf`;
       const docxFilename = baseFilename.replace('.Informe', '') + '.Informe.docx';
 
-      // 1. Generar DOCX primero (más rápido)
       setProgress(20);
       toast({
         title: 'Generando documentos...',
@@ -334,7 +395,6 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
 
       setProgress(60);
 
-      // 2. Generar PDF
       toast({
         title: 'Generando documentos...',
         description: 'Creando documento PDF',
