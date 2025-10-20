@@ -58,7 +58,8 @@ export async function generateDocx(
   signatureName: string, 
   logoUrl?: string, 
   folderName?: string,
-  signatureDataUrl?: string
+  signatureDataUrl?: string,
+  fileName?: string
 ): Promise<void> {
   try {
     // Convertir imágenes a buffer usando ArrayBuffer directamente
@@ -414,14 +415,13 @@ export async function generateDocx(
 
     const blob = await Packer.toBlob(doc);
     
-    const folderPrefix = folderName ? `${folderName}_` : '';
-    const fileName = `Inspección_${folderPrefix}${new Date().toISOString().split('T')[0]}.docx`;
+    const docxFileName = fileName || `Inspección_${folderName ? folderName + '_' : ''}${new Date().toISOString().split('T')[0]}.docx`;
     
     // Intentar guardar usando File System Access API
     const projectFolder = folderName || ConfigManager.getRuta();
     
     if (ConfigManager.isUsingFileSystemAPI()) {
-      const saved = await FileSystemStorage.saveDocument(blob, fileName, projectFolder);
+      const saved = await FileSystemStorage.saveDocument(blob, docxFileName, projectFolder);
       
       if (saved) {
         console.log(`Documento guardado en docs generated/${projectFolder}/`);
@@ -430,7 +430,7 @@ export async function generateDocx(
         if (WebhookApi.hasWebhook()) {
           await WebhookApi.uploadDocument({
             file: blob,
-            filename: fileName,
+            filename: docxFileName,
             projectName: projectFolder,
             type: 'docx'
           });
@@ -441,13 +441,13 @@ export async function generateDocx(
     }
     
     // Fallback: método tradicional
-    saveAs(blob, fileName);
+    saveAs(blob, docxFileName);
     
     // Enviar a webhook si está configurado
     if (WebhookApi.hasWebhook()) {
       await WebhookApi.uploadDocument({
         file: blob,
-        filename: fileName,
+        filename: docxFileName,
         projectName: projectFolder,
         type: 'docx'
       });

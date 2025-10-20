@@ -302,8 +302,8 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
 
       // Generar nombre base sin extensión
       const baseFilename = filename.replace(/\.(pdf|docx)$/i, '');
-      const pdfFilename = `${baseFilename}.pdf`;
-      const docxFilename = `${baseFilename}.docx`;
+      const pdfFilename = filename.endsWith('.pdf') ? filename : `${baseFilename}.pdf`;
+      const docxFilename = baseFilename.replace('.Informe', '') + '.Informe.docx';
 
       // 1. Generar DOCX primero (más rápido)
       setProgress(20);
@@ -317,7 +317,8 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
         signatureName,
         logoUrl,
         projectFolder,
-        signatureDataUrl
+        signatureDataUrl,
+        docxFilename
       );
 
       setProgress(60);

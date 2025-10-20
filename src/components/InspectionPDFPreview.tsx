@@ -78,6 +78,38 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
   const { generateDualDocument } = usePDFGenerator();
   const { signatureRef, signatureData, clearSignature, validateSignature, saveSignature } = useSignature();
 
+  // Generar nombre de archivo con formato
+  const generateFilename = (extension?: string): string => {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    const expedient = data.expedientNumber || 'SinExpediente';
+    const workName = data.work.name || 'SinObra';
+    
+    const base = `${expedient}. ${workName}_${year}_${day}_${month}`;
+    return extension ? `${base}.${extension}` : base;
+  };
+
+  // Generar metadatos de inspección
+  const generateInspectionMetadata = (): string => {
+    const date = new Date().toLocaleString('es-ES');
+    return `DATOS DE LA INSPECCIÓN
+=========================
+Fecha de registro: ${date}
+
+N° de Expediente: ${data.expedientNumber}
+Promotor: ${data.work.promotingCompany}
+Proyecto: ${data.work.name}
+Emplazamiento: ${data.work.location}
+Inspector: ${data.inspector.name}
+Email del Inspector: ${data.inspector.email}
+
+Carpeta de proyecto: ${selectedFolder || 'No especificada'}
+`;
+  };
+
   // Generar documento PDF
   const generateDocument = async () => {
     try {
@@ -113,9 +145,9 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
         return;
       }
 
-      const folderPrefix = selectedFolder ? `${selectedFolder}_` : '';
-      const currentDate = new Date().toISOString().split('T')[0];
-      const baseFileName = `Inspección_${folderPrefix}${currentDate}`;
+      const baseFileName = generateFilename();
+      const pdfFilename = `${baseFileName}.Informe.pdf`;
+      const docxFilename = `${baseFileName}.Informe.docx`;
       
       // Obtener referencia al contenido del documento
       const contentElement = document.getElementById('pdf-content');
@@ -132,7 +164,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       
       // Generar ambos documentos (PDF y DOCX) simultáneamente
       const success = await generateDualDocument(elementRef, {
-        filename: baseFileName,
+        filename: pdfFilename,
         inspectionData: data,
         signatureName,
         logoUrl,
@@ -141,9 +173,60 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
       });
 
       if (success) {
+        // Enviar TXT y fotos al webhook
+        const { WebhookApi } = await import('@/services/webhookApi');
+        const projectName = data.work.name || 'Sin_Proyecto';
+        
+        // Enviar archivo txt con metadatos
+        const metadataContent = generateInspectionMetadata();
+        const metadataBlob = new Blob([metadataContent], { type: 'text/plain' });
+        const metadataFilename = generateFilename('txt');
+        
+        await WebhookApi.uploadDocument({
+          file: metadataBlob,
+          filename: metadataFilename,
+          projectName,
+          type: 'pdf',
+          metadata: {
+            expedientNumber: data.expedientNumber,
+            folder: selectedFolder,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        // Enviar todas las fotos al endpoint con numeración por sección
+        const photosBySection = {
+          'Entorno_Trabajo': data.workEnvironment.photos,
+          'Estado_Herramientas': data.toolsStatus.photos,
+          ...data.vans.reduce((acc, van) => {
+            acc[`Furgoneta_${van.licensePlate}`] = van.photos;
+            return acc;
+          }, {} as Record<string, typeof data.workEnvironment.photos>)
+        };
+
+        for (const [section, photos] of Object.entries(photosBySection)) {
+          let photoNum = 1;
+          for (const photo of photos) {
+            const identifier = photo.comment || photoNum.toString();
+            await WebhookApi.uploadDocument({
+              file: photo.file,
+              filename: `${baseFileName}.${section}.${identifier}.jpg`,
+              projectName,
+              type: 'pdf',
+              metadata: {
+                expedientNumber: data.expedientNumber,
+                comment: photo.comment,
+                section: section,
+                photoNumber: photoNum
+              }
+            });
+            photoNum++;
+          }
+        }
+
         toast({
           title: 'Documentos generados',
-          description: `Los archivos PDF y DOCX se han generado correctamente`,
+          description: `Los archivos PDF, DOCX, TXT y fotos se han enviado correctamente`,
         });
       }
 
