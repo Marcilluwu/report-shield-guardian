@@ -401,30 +401,37 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         }
       });
 
-      // Enviar todas las fotos al endpoint como payloads separados con contador
+      // Enviar todas las fotos al endpoint con numeración por sección
       const baseFilename = generateFilename('').replace(/\.\w+$/, '');
-      const allPhotos = [
-        ...inspectionData.workEnvironment.photos.map(p => ({ ...p, section: 'Entorno_Trabajo' })),
-        ...inspectionData.toolsStatus.photos.map(p => ({ ...p, section: 'Estado_Herramientas' })),
-        ...inspectionData.vans.flatMap(van => 
-          van.photos.map(p => ({ ...p, section: `Furgoneta_${van.licensePlate}` }))
-        )
-      ];
+      
+      // Agrupar fotos por sección y numerarlas
+      const photosBySection = {
+        'Entorno_Trabajo': inspectionData.workEnvironment.photos,
+        'Estado_Herramientas': inspectionData.toolsStatus.photos,
+        ...inspectionData.vans.reduce((acc, van) => {
+          acc[`Furgoneta_${van.licensePlate}`] = van.photos;
+          return acc;
+        }, {} as Record<string, typeof inspectionData.workEnvironment.photos>)
+      };
 
-      let photoCounter = 1;
-      for (const photo of allPhotos) {
-        await WebhookApi.uploadDocument({
-          file: photo.file,
-          filename: `${baseFilename}.${photo.section}.${photoCounter}.jpg`,
-          projectName,
-          type: 'pdf',
-          metadata: {
-            expedientNumber: inspectionData.expedientNumber,
-            comment: photo.comment,
-            section: photo.section
-          }
-        });
-        photoCounter++;
+      for (const [section, photos] of Object.entries(photosBySection)) {
+        let photoNum = 1;
+        for (const photo of photos) {
+          const identifier = photo.comment || photoNum.toString();
+          await WebhookApi.uploadDocument({
+            file: photo.file,
+            filename: `${baseFilename}.${section}.${identifier}.jpg`,
+            projectName,
+            type: 'pdf',
+            metadata: {
+              expedientNumber: inspectionData.expedientNumber,
+              comment: photo.comment,
+              section: section,
+              photoNumber: photoNum
+            }
+          });
+          photoNum++;
+        }
       }
       
       toast({
