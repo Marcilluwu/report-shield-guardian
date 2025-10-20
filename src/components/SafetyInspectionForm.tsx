@@ -275,7 +275,7 @@ export const SafetyInspectionForm = () => {
   // GENERAR NOMBRE DE ARCHIVO CON FORMATO
   // =====================================================
   
-  const generateFilename = (extension: string = 'txt'): string => {
+  const generateFilename = (extension?: string): string => {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -284,7 +284,8 @@ export const SafetyInspectionForm = () => {
     const expedient = inspectionData.expedientNumber || 'SinExpediente';
     const workName = inspectionData.work.name || 'SinObra';
     
-    return `${expedient}. ${workName}_${year}_${day}_${month}.${extension}`;
+    const base = `${expedient}. ${workName}_${year}_${day}_${month}`;
+    return extension ? `${base}.${extension}` : base;
   };
 
   // =====================================================
@@ -402,7 +403,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
       });
 
       // Enviar todas las fotos al endpoint con numeración por sección
-      const baseFilename = generateFilename('').replace(/\.\w+$/, '');
+      const baseFilename = generateFilename();
       
       // Agrupar fotos por sección y numerarlas
       const photosBySection = {
