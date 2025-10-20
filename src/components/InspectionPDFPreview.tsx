@@ -38,6 +38,7 @@ interface VanStatus {
 }
 
 interface InspectionData {
+  expedientNumber: string;
   inspector: {
     name: string;
     email: string;
@@ -259,6 +260,7 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
               {/* Information sections - compact */}
               <div style={{ fontSize: '11px', marginBottom: '15px', lineHeight: '1.6', letterSpacing: '0.3px' }}>
                 <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#4a7c59' }}>1. Datos de la inspección</h2>
+                {data.expedientNumber && <p><strong>N° de Expediente:</strong> {data.expedientNumber}</p>}
                 <p><strong>Promotor:</strong> {data.work.promotingCompany}</p>
                 <p><strong>Proyecto:</strong> {data.work.name}</p>
                 <p><strong>Emplazamiento:</strong> {data.work.location}</p>

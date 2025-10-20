@@ -44,6 +44,7 @@ interface VanStatus {
 }
 
 interface InspectionData {
+  expedientNumber: string;
   inspector: {
     name: string;
     email: string;
@@ -83,6 +84,7 @@ export const SafetyInspectionForm = () => {
   const { isOnline, pendingCount, submitForm, retrySync } = useOfflineForm();
   
   const [inspectionData, setInspectionData] = useState<InspectionData>({
+    expedientNumber: '',
     inspector: { name: '', email: '' },
     work: { name: '', location: '', promotingCompany: '' },
     workers: [{ id: '1', name: '', dni: '', category: '', company: '' }],
@@ -269,22 +271,70 @@ export const SafetyInspectionForm = () => {
   };
 
   // =====================================================
+  // GENERAR ARCHIVO TXT CON INFORMACIÓN DEL PRIMER APARTADO
+  // =====================================================
+  
+  const generateInspectionMetadata = (): string => {
+    const date = new Date().toLocaleString('es-ES');
+    return `DATOS DE LA INSPECCIÓN
+=========================
+Fecha de registro: ${date}
+
+N° de Expediente: ${inspectionData.expedientNumber}
+Promotor: ${inspectionData.work.promotingCompany}
+Proyecto: ${inspectionData.work.name}
+Emplazamiento: ${inspectionData.work.location}
+Inspector: ${inspectionData.inspector.name}
+Email del Inspector: ${inspectionData.inspector.email}
+
+Carpeta de proyecto: ${selectedFolder || 'No especificada'}
+Logo seleccionado: ${selectedLogo || 'No seleccionado'}
+`;
+  };
+
+  // =====================================================
   // GUARDAR FORMULARIO CON SOPORTE OFFLINE
   // =====================================================
   
   const handleSaveForm = async () => {
     try {
+      // Generar archivo txt con metadatos
+      const metadataContent = generateInspectionMetadata();
+      const metadataBlob = new Blob([metadataContent], { type: 'text/plain' });
+      const metadataFile = new File(
+        [metadataBlob], 
+        `inspeccion_${inspectionData.expedientNumber || Date.now()}_datos.txt`,
+        { type: 'text/plain' }
+      );
+
       // NOTA: Sin backend real, simplemente guardamos localmente
       // Para producción, descomenta y configura tu endpoint:
       /*
+      const formData = new FormData();
+      formData.append('metadata', metadataFile);
+      formData.append('data', JSON.stringify({
+        ...inspectionData,
+        logo: logoUrl,
+        folder: selectedFolder,
+        submittedAt: new Date().toISOString()
+      }));
+
+      // Adjuntar todas las imágenes
+      inspectionData.workEnvironment.photos.forEach((photo, index) => {
+        formData.append(`workEnvironment_${index}`, photo.file);
+      });
+      inspectionData.toolsStatus.photos.forEach((photo, index) => {
+        formData.append(`toolsStatus_${index}`, photo.file);
+      });
+      inspectionData.vans.forEach((van, vanIndex) => {
+        van.photos.forEach((photo, photoIndex) => {
+          formData.append(`van_${vanIndex}_${photoIndex}`, photo.file);
+        });
+      });
+      
       const result = await submitForm(
         '/api/inspections',
-        {
-          ...inspectionData,
-          logo: logoUrl,
-          folder: selectedFolder,
-          submittedAt: new Date().toISOString()
-        },
+        formData,
         'POST'
       );
       
@@ -301,9 +351,19 @@ export const SafetyInspectionForm = () => {
       }
       */
       
+      // Guardar el archivo txt localmente para demostración
+      const url = URL.createObjectURL(metadataBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inspeccion_${inspectionData.expedientNumber || Date.now()}_datos.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
       toast({
         title: '✅ Inspección completada',
-        description: 'Los datos se han guardado localmente correctamente.',
+        description: 'Los datos se han guardado localmente y el archivo de metadatos se ha descargado.',
       });
     } catch (error) {
       console.error('Error al guardar formulario:', error);
@@ -402,6 +462,18 @@ export const SafetyInspectionForm = () => {
             <CardTitle className="text-primary">1. Datos de la Inspección</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="expedient-number">N° de Expediente</Label>
+              <Input
+                id="expedient-number"
+                value={inspectionData.expedientNumber}
+                onChange={(e) => setInspectionData(prev => ({
+                  ...prev,
+                  expedientNumber: e.target.value
+                }))}
+                placeholder="Ej: EXP-2025-001"
+              />
+            </div>
             <div>
               <Label htmlFor="promoting-company">Promotor</Label>
               <Input
