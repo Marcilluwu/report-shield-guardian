@@ -298,75 +298,61 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
   
   const handleSaveForm = async () => {
     try {
+      const { WebhookApi } = await import('@/services/webhookApi');
+      
       // Generar archivo txt con metadatos
       const metadataContent = generateInspectionMetadata();
       const metadataBlob = new Blob([metadataContent], { type: 'text/plain' });
-      const metadataFile = new File(
-        [metadataBlob], 
-        `inspeccion_${inspectionData.expedientNumber || Date.now()}_datos.txt`,
-        { type: 'text/plain' }
-      );
-
-      // NOTA: Sin backend real, simplemente guardamos localmente
-      // Para producción, descomenta y configura tu endpoint:
-      /*
-      const formData = new FormData();
-      formData.append('metadata', metadataFile);
-      formData.append('data', JSON.stringify({
-        ...inspectionData,
-        logo: logoUrl,
-        folder: selectedFolder,
-        submittedAt: new Date().toISOString()
-      }));
-
-      // Adjuntar todas las imágenes
-      inspectionData.workEnvironment.photos.forEach((photo, index) => {
-        formData.append(`workEnvironment_${index}`, photo.file);
-      });
-      inspectionData.toolsStatus.photos.forEach((photo, index) => {
-        formData.append(`toolsStatus_${index}`, photo.file);
-      });
-      inspectionData.vans.forEach((van, vanIndex) => {
-        van.photos.forEach((photo, photoIndex) => {
-          formData.append(`van_${vanIndex}_${photoIndex}`, photo.file);
-        });
-      });
+      const metadataFilename = `inspeccion_${inspectionData.expedientNumber || Date.now()}_datos.txt`;
       
-      const result = await submitForm(
-        '/api/inspections',
-        formData,
-        'POST'
-      );
-      
-      if (result.queued) {
-        toast({
-          title: '💾 Formulario guardado localmente',
-          description: `Se sincronizará automáticamente cuando haya conexión.`,
-        });
-      } else {
-        toast({
-          title: '✅ Formulario guardado',
-          description: 'Los datos se han enviado correctamente al servidor.',
+      // Enviar archivo de metadatos al endpoint
+      const projectName = inspectionData.work.name || 'Sin_Proyecto';
+      await WebhookApi.uploadDocument({
+        file: metadataBlob,
+        filename: metadataFilename,
+        projectName,
+        type: 'pdf',
+        metadata: {
+          expedientNumber: inspectionData.expedientNumber,
+          folder: selectedFolder,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      // Enviar todas las fotos al endpoint
+      const allPhotos = [
+        ...inspectionData.workEnvironment.photos.map(p => ({ ...p, section: 'Entorno_Trabajo' })),
+        ...inspectionData.toolsStatus.photos.map(p => ({ ...p, section: 'Estado_Herramientas' })),
+        ...inspectionData.vans.flatMap(van => 
+          van.photos.map(p => ({ ...p, section: `Furgoneta_${van.licensePlate}` }))
+        )
+      ];
+
+      for (const photo of allPhotos) {
+        await WebhookApi.uploadDocument({
+          file: photo.file,
+          filename: `${photo.section}_${Date.now()}_${photo.id}.jpg`,
+          projectName,
+          type: 'pdf',
+          metadata: {
+            expedientNumber: inspectionData.expedientNumber,
+            comment: photo.comment,
+            section: photo.section
+          }
         });
       }
-      */
-      
-      // Guardar el archivo txt localmente para demostración
-      const url = URL.createObjectURL(metadataBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `inspeccion_${inspectionData.expedientNumber || Date.now()}_datos.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
       
       toast({
         title: '✅ Inspección completada',
-        description: 'Los datos se han guardado localmente y el archivo de metadatos se ha descargado.',
+        description: 'El reporte y las imágenes se han enviado al endpoint.',
       });
     } catch (error) {
       console.error('Error al guardar formulario:', error);
+      toast({
+        title: '❌ Error',
+        description: 'No se pudo enviar el reporte.',
+        variant: 'destructive'
+      });
     }
   };
 
