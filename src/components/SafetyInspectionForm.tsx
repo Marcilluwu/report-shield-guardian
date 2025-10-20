@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Eye, Wifi, WifiOff, RefreshCw, Save } from 'lucide-react';
+import { Trash2, Plus, Eye, Wifi, WifiOff, RefreshCw, Save, Upload } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { InspectionPDFPreview } from './InspectionPDFPreview';
 import { LogoSelector } from './LogoSelector';
@@ -79,6 +79,7 @@ export const SafetyInspectionForm = () => {
   const [selectedLogo, setSelectedLogo] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // ✅ Hook Offline-First
   const { isOnline, pendingCount, submitForm, retrySync } = useOfflineForm();
@@ -271,6 +272,22 @@ export const SafetyInspectionForm = () => {
   };
 
   // =====================================================
+  // GENERAR NOMBRE DE ARCHIVO CON FORMATO
+  // =====================================================
+  
+  const generateFilename = (extension: string = 'txt'): string => {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    const expedient = inspectionData.expedientNumber || 'SinExpediente';
+    const folder = selectedFolder || inspectionData.work.name || 'SinCarpeta';
+    
+    return `(${expedient} ${folder})_${year}_${day}_${month}.${extension}`;
+  };
+
+  // =====================================================
   // GENERAR ARCHIVO TXT CON INFORMACIÓN DEL PRIMER APARTADO
   // =====================================================
   
@@ -293,6 +310,71 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
   };
 
   // =====================================================
+  // CARGAR DATOS DESDE ARCHIVO TXT
+  // =====================================================
+  
+  const handleLoadMetadata = async (file: File) => {
+    try {
+      const text = await file.text();
+      
+      // Parsear los datos del archivo
+      const expedientMatch = text.match(/N° de Expediente: (.+)/);
+      const promoterMatch = text.match(/Promotor: (.+)/);
+      const projectMatch = text.match(/Proyecto: (.+)/);
+      const locationMatch = text.match(/Emplazamiento: (.+)/);
+      const inspectorMatch = text.match(/Inspector: (.+)/);
+      const emailMatch = text.match(/Email del Inspector: (.+)/);
+      const folderMatch = text.match(/Carpeta de proyecto: (.+)/);
+      const logoMatch = text.match(/Logo seleccionado: (.+)/);
+      
+      // Actualizar el estado con los datos recuperados
+      setInspectionData(prev => ({
+        ...prev,
+        expedientNumber: expedientMatch?.[1] || '',
+        work: {
+          ...prev.work,
+          promotingCompany: promoterMatch?.[1] || '',
+          name: projectMatch?.[1] || '',
+          location: locationMatch?.[1] || '',
+        },
+        inspector: {
+          name: inspectorMatch?.[1] || '',
+          email: emailMatch?.[1] || '',
+        },
+      }));
+      
+      const folderValue = folderMatch?.[1];
+      if (folderValue && folderValue !== 'No especificada') {
+        setSelectedFolder(folderValue);
+      }
+      
+      const logoValue = logoMatch?.[1];
+      if (logoValue && logoValue !== 'No seleccionado') {
+        setSelectedLogo(logoValue);
+      }
+      
+      toast({
+        title: '✅ Datos cargados',
+        description: 'Los datos de la inspección se han recuperado correctamente.',
+      });
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      toast({
+        title: '❌ Error',
+        description: 'No se pudo leer el archivo.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleLoadMetadata(file);
+    }
+  };
+
+  // =====================================================
   // GUARDAR FORMULARIO CON SOPORTE OFFLINE
   // =====================================================
   
@@ -303,7 +385,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
       // Generar archivo txt con metadatos
       const metadataContent = generateInspectionMetadata();
       const metadataBlob = new Blob([metadataContent], { type: 'text/plain' });
-      const metadataFilename = `inspeccion_${inspectionData.expedientNumber || Date.now()}_datos.txt`;
+      const metadataFilename = generateFilename('txt');
       
       // Enviar archivo de metadatos al endpoint
       const projectName = inspectionData.work.name || 'Sin_Proyecto';
@@ -320,6 +402,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
       });
 
       // Enviar todas las fotos al endpoint
+      const baseFilename = generateFilename('').replace('.', '');
       const allPhotos = [
         ...inspectionData.workEnvironment.photos.map(p => ({ ...p, section: 'Entorno_Trabajo' })),
         ...inspectionData.toolsStatus.photos.map(p => ({ ...p, section: 'Estado_Herramientas' })),
@@ -331,7 +414,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
       for (const photo of allPhotos) {
         await WebhookApi.uploadDocument({
           file: photo.file,
-          filename: `${photo.section}_${Date.now()}_${photo.id}.jpg`,
+          filename: `${baseFilename}_${photo.section}_${photo.id}.jpg`,
           projectName,
           type: 'pdf',
           metadata: {
@@ -428,6 +511,27 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
             <CardTitle className="text-primary">Selección de Logo y Carpeta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div>
+              <Label>Cargar Datos de Inspección</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                className="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Cargar archivo .txt
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Selecciona un archivo .txt previamente generado para recuperar los datos
+              </p>
+            </div>
             <LogoSelector
               selectedLogo={selectedLogo}
               onLogoChange={(name, url) => {
