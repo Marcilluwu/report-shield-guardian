@@ -401,9 +401,8 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         }
       });
 
-      // Enviar todas las fotos al endpoint en una carpeta
+      // Enviar todas las fotos al endpoint como payloads separados
       const baseFilename = generateFilename('').replace(/\.\w+$/, '');
-      const photoFolder = `${baseFilename}/Fotos`;
       const allPhotos = [
         ...inspectionData.workEnvironment.photos.map(p => ({ ...p, section: 'Entorno_Trabajo' })),
         ...inspectionData.toolsStatus.photos.map(p => ({ ...p, section: 'Estado_Herramientas' })),
@@ -415,14 +414,13 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
       for (const photo of allPhotos) {
         await WebhookApi.uploadDocument({
           file: photo.file,
-          filename: `${photoFolder}/${photo.section}_${photo.id}.jpg`,
+          filename: `${baseFilename}_${photo.section}_${photo.id}.jpg`,
           projectName,
           type: 'pdf',
           metadata: {
             expedientNumber: inspectionData.expedientNumber,
             comment: photo.comment,
-            section: photo.section,
-            folder: photoFolder
+            section: photo.section
           }
         });
       }
