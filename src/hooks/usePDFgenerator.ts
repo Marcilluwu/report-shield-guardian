@@ -37,19 +37,30 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
   const [progress, setProgress] = useState<number>(0);
   
   // ✅ Configuración optimizada para html2canvas
-  const getHtml2CanvasConfig = (scale: number = 2) => ({
-    scale,
-    useCORS: true,
-    allowTaint: false,
-    backgroundColor: '#ffffff',
-    logging: false,
-    removeContainer: true,
-    imageTimeout: 15000, // 15 segundos de timeout
-    height: null,
-    width: null,
-    scrollX: 0,
-    scrollY: 0,
-  });
+  const getHtml2CanvasConfig = (scale: number = 2) => {
+    // Detectar si es móvil y ajustar escala para resolución consistente
+    const isMobile = window.innerWidth < 768;
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    
+    // En móvil, usar escala más alta para compensar viewport pequeño
+    const adjustedScale = isMobile ? Math.max(scale * 1.5, 3) : scale;
+    
+    return {
+      scale: adjustedScale,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      removeContainer: true,
+      imageTimeout: 15000,
+      height: null,
+      width: null,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: isMobile ? 1024 : window.innerWidth, // Forzar ancho desktop en móvil
+      windowHeight: isMobile ? 1440 : window.innerHeight,
+    };
+  };
 
   // ✅ Función principal para generar PDF
   const generatePDF = useCallback(async (
