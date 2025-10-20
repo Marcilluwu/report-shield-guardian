@@ -164,15 +164,14 @@ export class WebhookApi {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ping: true, timestamp: Date.now() }),
         cache: 'no-cache',
+        mode: 'no-cors', // Permitir sin CORS configurado
         signal: controller.signal
       });
       
       clearTimeout(timeoutId);
       
-      if (!response.ok) return false;
-      
-      const text = await response.text();
-      return text.trim() === 'PONG';
+      // Con no-cors, si la petición se completó sin error de red, asumimos conexión
+      return true;
     } catch {
       return false;
     }

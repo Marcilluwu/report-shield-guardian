@@ -313,16 +313,18 @@ async function checkConnection(): Promise<boolean> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ping: true, timestamp: Date.now() }),
       cache: 'no-cache',
+      mode: 'no-cors', // Permitir sin CORS configurado
       signal: controller.signal
     });
     
     clearTimeout(timeoutId);
     
-    if (!response.ok) return false;
-    
-    const text = await response.text();
-    return text.trim() === 'PONG';
-  } catch {
+    // Con no-cors, response.ok siempre es false y type es 'opaque'
+    // Si la petición se completó sin error de red, asumimos conexión
+    return true;
+  } catch (error) {
+    // Error de red = sin conexión
+    console.log('Sin conexión al servidor');
     return false;
   }
 }
