@@ -15,6 +15,10 @@ import {
 } from '@/lib/outbox';
 import { toast } from '@/hooks/use-toast';
 
+// Singleton de heartbeat para evitar duplicados en StrictMode o múltiples montajes
+let __heartbeatStarted = false;
+let __heartbeatIntervalId: number | null = null;
+
 interface UseOfflineFormReturn {
   isOnline: boolean;
   pendingCount: number;
@@ -37,18 +41,18 @@ export function useOfflineForm(): UseOfflineFormReturn {
   // DETECCIÓN DE ESTADO DE CONEXIÓN
   // =====================================================
 
+  // Usar el servicio de heartbeat centralizado
   useEffect(() => {
-    let intervalId: number;
-    let lastStatus = navigator.onLine;
-
-    const checkAndUpdateConnection = async () => {
-      const currentStatus = await checkConnection();
+    // Importar dinámicamente para evitar problemas de circular dependency
+    import('../services/heartbeat').then(({ HeartbeatService }) => {
+      // Iniciar el servicio global
+      HeartbeatService.start();
       
-      if (currentStatus !== lastStatus) {
-        lastStatus = currentStatus;
-        setIsOnline(currentStatus);
+      // Escuchar cambios de estado
+      const removeListener = HeartbeatService.addListener((isOnline) => {
+        setIsOnline(isOnline);
         
-        if (currentStatus) {
+        if (isOnline) {
           console.log('🟢 Conexión restaurada');
           toast({
             title: '🟢 Conexión restaurada',
@@ -63,18 +67,13 @@ export function useOfflineForm(): UseOfflineFormReturn {
             variant: 'destructive'
           });
         }
-      }
-    };
-
-    // Verificar inmediatamente
-    checkAndUpdateConnection();
-    
-    // Verificar cada 5 segundos
-    intervalId = window.setInterval(checkAndUpdateConnection, 5000);
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
+      });
+      
+      // Establecer estado inicial
+      setIsOnline(HeartbeatService.getCurrentStatus());
+      
+      return removeListener;
+    });
   }, []);
 
   // =====================================================
@@ -308,12 +307,11 @@ async function checkConnection(): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
     
-    const response = await fetch('https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ping: true, timestamp: Date.now() }),
+    // Usar GET sin cabeceras y no-cors para evitar CORS/preflight
+    await fetch('https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler?ping=1', {
+      method: 'GET',
       cache: 'no-cache',
-      mode: 'no-cors', // Permitir sin CORS configurado
+      mode: 'no-cors',
       signal: controller.signal
     });
     

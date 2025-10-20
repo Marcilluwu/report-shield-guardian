@@ -159,10 +159,9 @@ export class WebhookApi {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
-      const response = await fetch('https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ping: true, timestamp: Date.now() }),
+      // Usar GET sin cabeceras y no-cors para evitar CORS/preflight
+      await fetch('https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler?ping=1', {
+        method: 'GET',
         cache: 'no-cache',
         mode: 'no-cors', // Permitir sin CORS configurado
         signal: controller.signal
