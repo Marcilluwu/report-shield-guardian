@@ -30,32 +30,55 @@ interface UsePDFGeneratorReturn {
 }
 
 // Función auxiliar para precargar todas las imágenes antes de generar PDF
-const preloadImages = async (element: HTMLElement): Promise<void> => {
+const preloadImages = async (element: HTMLElement): Promise<boolean> => {
   const images = Array.from(element.querySelectorAll('img'));
-  const imagePromises = images.map((img) => {
-    return new Promise<void>((resolve, reject) => {
-      if (img.complete) {
+  console.log(`Precargando ${images.length} imágenes...`);
+  
+  let loadedCount = 0;
+  let failedCount = 0;
+
+  const imagePromises = images.map((img, index) => {
+    return new Promise<void>((resolve) => {
+      if (img.complete && img.naturalHeight !== 0) {
+        loadedCount++;
+        console.log(`Imagen ${index + 1}/${images.length} ya cargada`);
         resolve();
       } else {
         const timeout = setTimeout(() => {
-          console.warn('Timeout cargando imagen:', img.src);
+          console.warn(`Timeout cargando imagen ${index + 1}:`, img.src.substring(0, 100));
+          failedCount++;
           resolve(); // Resolver de todos modos para no bloquear
-        }, 30000); // 30 segundos timeout
+        }, 45000); // 45 segundos timeout (más tiempo para móviles)
 
         img.onload = () => {
           clearTimeout(timeout);
+          loadedCount++;
+          console.log(`Imagen ${index + 1}/${images.length} cargada correctamente`);
           resolve();
         };
         img.onerror = () => {
           clearTimeout(timeout);
-          console.error('Error cargando imagen:', img.src);
+          console.error(`Error cargando imagen ${index + 1}:`, img.src.substring(0, 100));
+          failedCount++;
           resolve(); // Resolver de todos modos
         };
+        
+        // Forzar recarga si la imagen no está completa
+        if (!img.complete) {
+          const currentSrc = img.src;
+          img.src = '';
+          img.src = currentSrc;
+        }
       }
     });
   });
 
   await Promise.all(imagePromises);
+  
+  console.log(`Precarga completada: ${loadedCount} exitosas, ${failedCount} fallidas de ${images.length} totales`);
+  
+  // Retornar true solo si al menos se cargó la mayoría de las imágenes
+  return failedCount < images.length / 2;
 };
 
 export const usePDFGenerator = (): UsePDFGeneratorReturn => {
@@ -120,7 +143,15 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       setProgress(20);
 
       // Precargar todas las imágenes primero
-      await preloadImages(elementRef.current);
+      const imagesLoaded = await preloadImages(elementRef.current);
+      
+      if (!imagesLoaded) {
+        toast({
+          title: 'Advertencia',
+          description: 'Algunas imágenes no se cargaron completamente. El PDF podría tener problemas.',
+          variant: 'destructive',
+        });
+      }
       
       setProgress(30);
 
@@ -138,71 +169,62 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       const pageHeight = pdf.internal.pageSize.getHeight();
 
       if (pageNodes.length > 0) {
+        console.log(`Procesando ${pageNodes.length} páginas del PDF...`);
+        
         // Procesar página por página
         let pageIndex = 0;
         for (const node of Array.from(pageNodes)) {
+          console.log(`Procesando página ${pageIndex + 1} de ${pageNodes.length}...`);
           setProgress(30 + (pageIndex / pageNodes.length) * 50);
           
-          const canvas = await html2canvas(
-            node as HTMLElement, 
-            getHtml2CanvasConfig(scale)
-          );
-          
-          if (!canvas) {
-            throw new Error('No se pudo generar el canvas de una página');
-          }
-
-          const imgData = canvas.toDataURL('image/jpeg', quality);
-          
-          if (!imgData || imgData === 'data:,') {
-            throw new Error('No se pudieron obtener los datos de la imagen');
-          }
-
-          const ratio = Math.min(
-            pageWidth / canvas.width, 
-            pageHeight / canvas.height
-          );
-          
-          const imgW = canvas.width * ratio;
-          const imgH = canvas.height * ratio;
-          const offsetX = (pageWidth - imgW) / 2;
-          const offsetY = (pageHeight - imgH) / 2;
-
+          // Esperar un momento antes de procesar cada página (ayuda en móviles)
           if (pageIndex > 0) {
-            pdf.addPage();
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
           
-          pdf.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH, '', 'FAST');
-          
-          pageIndex++;
-        }
-      } else {
-        // Fallback: captura completa
-        const canvas = await html2canvas(container, getHtml2CanvasConfig(scale));
-        
-        if (!canvas) {
-          throw new Error('No se pudo generar el canvas del documento');
-        }
+          try {
+            const canvas = await html2canvas(
+              node as HTMLElement, 
+              getHtml2CanvasConfig(scale)
+            );
+            
+            if (!canvas) {
+              console.error(`No se pudo generar el canvas de la página ${pageIndex + 1}`);
+              throw new Error(`No se pudo generar el canvas de la página ${pageIndex + 1}`);
+            }
 
-        const imgData = canvas.toDataURL('image/jpeg', quality);
-        
-        if (!imgData || imgData === 'data:,') {
-          throw new Error('No se pudieron obtener los datos de la imagen');
-        }
+            const imgData = canvas.toDataURL('image/jpeg', quality);
+            
+            if (!imgData || imgData === 'data:,') {
+              console.error(`No se pudieron obtener los datos de la imagen de la página ${pageIndex + 1}`);
+              throw new Error(`No se pudieron obtener los datos de la imagen de la página ${pageIndex + 1}`);
+            }
 
-        const imgWidth = pageWidth;
-        const imgHeight = (canvas.height * pageWidth) / canvas.width;
-        let position = 0;
-        let remainingHeight = imgHeight;
+            const ratio = Math.min(
+              pageWidth / canvas.width, 
+              pageHeight / canvas.height
+            );
+            
+            const imgW = canvas.width * ratio;
+            const imgH = canvas.height * ratio;
+            const offsetX = (pageWidth - imgW) / 2;
+            const offsetY = (pageHeight - imgH) / 2;
 
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
-        
-        while (remainingHeight > pageHeight) {
-          remainingHeight -= pageHeight;
-          position = remainingHeight - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
+            if (pageIndex > 0) {
+              pdf.addPage();
+            }
+            
+            pdf.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH, '', 'FAST');
+            console.log(`Página ${pageIndex + 1} procesada correctamente`);
+            
+            pageIndex++;
+          } catch (pageError) {
+            console.error(`Error procesando página ${pageIndex + 1}:`, pageError);
+            throw new Error(`Error en página ${pageIndex + 1}: ${pageError instanceof Error ? pageError.message : 'Error desconocido'}`);
+          }
         }
+        
+        console.log('Todas las páginas procesadas correctamente');
       }
 
       setProgress(85);
