@@ -699,7 +699,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         {/* EPIs */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">3. Resumen de las EPIS inspeccionadas</CardTitle>
+            <CardTitle className="text-primary">4. Resumen de las EPIS inspeccionadas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -726,7 +726,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
 
         {/* Work Environment Photos */}
         <PhotoUploadSection
-          title="4. Entorno de la Obra"
+          title="5. Entorno de la Obra"
           inputId="photos-workEnvironment"
           photos={inspectionData.workEnvironment.photos}
           onUpload={(files) => handleFileUpload(files, 'workEnvironment')}
@@ -736,7 +736,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
 
         {/* Tools Status Photos */}
         <PhotoUploadSection
-          title="5. Estado de las Herramientas"
+          title="6. Estado de las Herramientas"
           inputId="photos-toolsStatus"
           photos={inspectionData.toolsStatus.photos}
           onUpload={(files) => handleFileUpload(files, 'toolsStatus')}
@@ -748,7 +748,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         <Card className="shadow-safety">
           <CardHeader>
             <CardTitle className="text-primary flex items-center justify-between">
-              6. Estado de las Furgonetas
+              7. Estado de las Furgonetas
               <Button onClick={addVan} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Añadir Furgoneta
@@ -795,7 +795,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         {/* General Observations */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">9. Observaciones Generales</CardTitle>
+            <CardTitle className="text-primary">8. Observaciones Generales</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
