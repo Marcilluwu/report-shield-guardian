@@ -54,10 +54,9 @@ export const HeartbeatService = {
       
       console.log('🔍 Verificando conexión...');
       
-      const response = await fetch('https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ping: true, timestamp: Date.now() }),
+      // Usar GET sin cabeceras y no-cors para evitar preflight/CORS
+      await fetch(`https://n8n.n8n.instalia.synology.me/webhook/Conexion_handler?ping=1&ts=${Date.now()}` , {
+        method: 'GET',
         cache: 'no-cache',
         mode: 'no-cors',
         signal: controller.signal
