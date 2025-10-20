@@ -400,40 +400,56 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
       const pdfFilename = filename.endsWith('.pdf') ? filename : `${baseFilename}.pdf`;
       const docxFilename = baseFilename.replace('.Informe', '') + '.Informe.docx';
 
-      setProgress(20);
+      setProgress(10);
       toast({
         title: 'Generando documentos...',
-        description: 'Creando documento DOCX',
+        description: 'Creando PDF y DOCX en paralelo',
       });
 
-      await generateDocx(
-        inspectionData,
-        signatureName,
-        logoUrl,
-        projectFolder,
-        signatureDataUrl,
-        docxFilename
-      );
+      // Generar DOCX y PDF en paralelo
+      const [docxResult, pdfResult] = await Promise.all([
+        generateDocx(
+          inspectionData,
+          signatureName,
+          logoUrl,
+          projectFolder,
+          signatureDataUrl,
+          docxFilename
+        ).then(() => {
+          console.log('✅ DOCX generado correctamente');
+          return true;
+        }).catch((error) => {
+          console.error('❌ Error generando DOCX:', error);
+          return false;
+        }),
+        
+        generatePDF(elementRef, {
+          filename: pdfFilename,
+          projectFolder
+        }).then((success) => {
+          console.log(success ? '✅ PDF generado correctamente' : '❌ Error generando PDF');
+          return success;
+        }).catch((error) => {
+          console.error('❌ Error generando PDF:', error);
+          return false;
+        })
+      ]);
 
-      setProgress(60);
+      setProgress(100);
 
-      toast({
-        title: 'Generando documentos...',
-        description: 'Creando documento PDF',
-      });
-
-      const success = await generatePDF(elementRef, {
-        filename: pdfFilename,
-        projectFolder
-      });
-
-      if (success) {
-        setProgress(100);
+      if (docxResult && pdfResult) {
         toast({
           title: 'Documentos generados exitosamente',
           description: `Se han creado los archivos PDF y DOCX`,
         });
         return true;
+      } else if (docxResult || pdfResult) {
+        toast({
+          title: 'Generación parcial',
+          description: `Solo se generó ${docxResult ? 'DOCX' : 'PDF'} correctamente`,
+          variant: 'destructive',
+        });
+        return false;
       }
 
       return false;
