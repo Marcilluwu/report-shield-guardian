@@ -36,6 +36,12 @@ interface EPIItem {
   checked: boolean;
 }
 
+interface SafetyMeasureItem {
+  id: string;
+  name: string;
+  checked: boolean;
+}
+
 
 interface VanStatus {
   id: string;
@@ -56,6 +62,7 @@ interface InspectionData {
   };
   workers: Worker[];
   episReviewed: EPIItem[];
+  safetyMeasures: SafetyMeasureItem[];
   workEnvironment: {
     photos: PhotoWithComment[];
   };
@@ -71,6 +78,51 @@ const defaultEPIs: EPIItem[] = [
   { id: '2', name: 'Botas de seguridad', checked: false },
   { id: '3', name: 'Guantes de protección', checked: false },
   { id: '4', name: 'Gafas de protección', checked: false },
+];
+
+const defaultSafetyMeasures: SafetyMeasureItem[] = [
+  // 1. Medidas de protección colectiva
+  { id: 'pc1', name: 'Barandillas perimetrales en zonas elevadas', checked: false },
+  { id: 'pc2', name: 'Redes de seguridad para evitar caídas en altura', checked: false },
+  { id: 'pc3', name: 'Cubiertas provisionales de huecos (escaleras, ascensores, etc.)', checked: false },
+  { id: 'pc4', name: 'Protecciones en bordes de forjados', checked: false },
+  { id: 'pc5', name: 'Señalización de seguridad y balizamiento de zonas peligrosas', checked: false },
+  { id: 'pc6', name: 'Andamios con sistemas de seguridad (rodapiés, barandillas, plataformas completas)', checked: false },
+  { id: 'pc7', name: 'Sistemas anticaídas horizontales (líneas de vida)', checked: false },
+  { id: 'pc8', name: 'Pasarelas y plataformas de trabajo seguras', checked: false },
+  { id: 'pc9', name: 'Aislamiento de zonas de trabajo eléctrico o maquinaria', checked: false },
+  { id: 'pc10', name: 'Control de acceso (vallas perimetrales, caseta de vigilancia)', checked: false },
+  
+  // 2. Equipos de Protección Individual (EPI)
+  { id: 'epi1', name: 'Casco de seguridad', checked: false },
+  { id: 'epi2', name: 'Chaleco reflectante', checked: false },
+  { id: 'epi3', name: 'Guantes de protección (corte, químicos, etc.)', checked: false },
+  { id: 'epi4', name: 'Botas con puntera reforzada y suela antideslizante', checked: false },
+  { id: 'epi5', name: 'Protección auditiva (tapones o auriculares)', checked: false },
+  { id: 'epi6', name: 'Gafas o pantallas faciales', checked: false },
+  { id: 'epi7', name: 'Arnés de seguridad (para trabajos en altura)', checked: false },
+  { id: 'epi8', name: 'Mascarillas o respiradores (polvo, químicos, etc.)', checked: false },
+  { id: 'epi9', name: 'Ropa de protección (contra fuego, productos químicos, etc.)', checked: false },
+  
+  // 3. Medidas de protección eléctrica
+  { id: 'pe1', name: 'Etiquetado y señalización de cuadros eléctricos', checked: false },
+  { id: 'pe2', name: 'Uso de herramientas aisladas', checked: false },
+  { id: 'pe3', name: 'Bloqueo y etiquetado de equipos en mantenimiento', checked: false },
+  { id: 'pe4', name: 'Tomas de corriente protegidas', checked: false },
+  { id: 'pe5', name: 'Instalaciones revisadas y certificadas', checked: false },
+  
+  // 4. Prevención de riesgos por maquinaria y herramientas
+  { id: 'pm1', name: 'Mantenimiento preventivo de maquinaria', checked: false },
+  { id: 'pm2', name: 'Uso adecuado de protecciones en herramientas (guardas, protectores)', checked: false },
+  { id: 'pm3', name: 'Capacitación del personal que maneja equipos', checked: false },
+  { id: 'pm4', name: 'Inspección diaria de herramientas portátiles', checked: false },
+  
+  // 5. Medidas durante trabajos en altura
+  { id: 'ta1', name: 'Sistemas de anclaje certificados', checked: false },
+  { id: 'ta2', name: 'Líneas de vida horizontales o verticales', checked: false },
+  { id: 'ta3', name: 'Plataformas elevadoras seguras', checked: false },
+  { id: 'ta4', name: 'Revisión diaria de arneses y eslingas', checked: false },
+  { id: 'ta5', name: 'Supervisión continua', checked: false },
 ];
 
 
@@ -90,6 +142,7 @@ export const SafetyInspectionForm = () => {
     work: { name: '', location: '', promotingCompany: '' },
     workers: [{ id: '1', name: '', dni: '', category: '', company: '' }],
     episReviewed: defaultEPIs,
+    safetyMeasures: defaultSafetyMeasures,
     workEnvironment: { photos: [] },
     toolsStatus: { photos: [] },
     vans: [{ id: '1', licensePlate: '', photos: [] }],
@@ -229,6 +282,15 @@ export const SafetyInspectionForm = () => {
       ...prev,
       episReviewed: prev.episReviewed.map(epi =>
         epi.id === epiId ? { ...epi, checked: !epi.checked } : epi
+      )
+    }));
+  };
+
+  const toggleSafetyMeasure = (measureId: string) => {
+    setInspectionData(prev => ({
+      ...prev,
+      safetyMeasures: prev.safetyMeasures.map(measure =>
+        measure.id === measureId ? { ...measure, checked: !measure.checked } : measure
       )
     }));
   };
@@ -699,7 +761,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         {/* EPIs */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">4. Resumen de las EPIS inspeccionadas</CardTitle>
+            <CardTitle className="text-primary">3. Resumen de las EPIS inspeccionadas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -724,9 +786,122 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
           </CardContent>
         </Card>
 
+        {/* Safety Measures Checklist */}
+        <Card className="shadow-safety">
+          <CardHeader>
+            <CardTitle className="text-primary">4. Medidas de Seguridad y Prevención</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Medidas de protección colectiva */}
+            <div>
+              <h3 className="font-semibold text-lg mb-3">1. Medidas de protección colectiva</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {inspectionData.safetyMeasures
+                  .filter(m => m.id.startsWith('pc'))
+                  .map((measure) => (
+                    <div key={measure.id} className="flex items-center space-x-3">
+                      <Checkbox
+                        id={measure.id}
+                        checked={measure.checked}
+                        onCheckedChange={() => toggleSafetyMeasure(measure.id)}
+                      />
+                      <Label htmlFor={measure.id} className="cursor-pointer text-sm">
+                        {measure.name}
+                      </Label>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Equipos de Protección Individual */}
+            <div>
+              <h3 className="font-semibold text-lg mb-3">2. Equipos de Protección Individual (EPI)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {inspectionData.safetyMeasures
+                  .filter(m => m.id.startsWith('epi'))
+                  .map((measure) => (
+                    <div key={measure.id} className="flex items-center space-x-3">
+                      <Checkbox
+                        id={measure.id}
+                        checked={measure.checked}
+                        onCheckedChange={() => toggleSafetyMeasure(measure.id)}
+                      />
+                      <Label htmlFor={measure.id} className="cursor-pointer text-sm">
+                        {measure.name}
+                      </Label>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Medidas de protección eléctrica */}
+            <div>
+              <h3 className="font-semibold text-lg mb-3">3. Medidas de protección eléctrica</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {inspectionData.safetyMeasures
+                  .filter(m => m.id.startsWith('pe'))
+                  .map((measure) => (
+                    <div key={measure.id} className="flex items-center space-x-3">
+                      <Checkbox
+                        id={measure.id}
+                        checked={measure.checked}
+                        onCheckedChange={() => toggleSafetyMeasure(measure.id)}
+                      />
+                      <Label htmlFor={measure.id} className="cursor-pointer text-sm">
+                        {measure.name}
+                      </Label>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Prevención de riesgos por maquinaria */}
+            <div>
+              <h3 className="font-semibold text-lg mb-3">4. Prevención de riesgos por maquinaria y herramientas</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {inspectionData.safetyMeasures
+                  .filter(m => m.id.startsWith('pm'))
+                  .map((measure) => (
+                    <div key={measure.id} className="flex items-center space-x-3">
+                      <Checkbox
+                        id={measure.id}
+                        checked={measure.checked}
+                        onCheckedChange={() => toggleSafetyMeasure(measure.id)}
+                      />
+                      <Label htmlFor={measure.id} className="cursor-pointer text-sm">
+                        {measure.name}
+                      </Label>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Medidas durante trabajos en altura */}
+            <div>
+              <h3 className="font-semibold text-lg mb-3">5. Medidas durante trabajos en altura</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {inspectionData.safetyMeasures
+                  .filter(m => m.id.startsWith('ta'))
+                  .map((measure) => (
+                    <div key={measure.id} className="flex items-center space-x-3">
+                      <Checkbox
+                        id={measure.id}
+                        checked={measure.checked}
+                        onCheckedChange={() => toggleSafetyMeasure(measure.id)}
+                      />
+                      <Label htmlFor={measure.id} className="cursor-pointer text-sm">
+                        {measure.name}
+                      </Label>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Work Environment Photos */}
         <PhotoUploadSection
-          title="5. Entorno de la Obra"
+          title="6. Entorno de la Obra"
           inputId="photos-workEnvironment"
           photos={inspectionData.workEnvironment.photos}
           onUpload={(files) => handleFileUpload(files, 'workEnvironment')}
@@ -736,7 +911,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
 
         {/* Tools Status Photos */}
         <PhotoUploadSection
-          title="6. Estado de las Herramientas"
+          title="7. Estado de las Herramientas"
           inputId="photos-toolsStatus"
           photos={inspectionData.toolsStatus.photos}
           onUpload={(files) => handleFileUpload(files, 'toolsStatus')}
@@ -748,7 +923,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         <Card className="shadow-safety">
           <CardHeader>
             <CardTitle className="text-primary flex items-center justify-between">
-              7. Estado de las Furgonetas
+              8. Estado de las Furgonetas
               <Button onClick={addVan} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Añadir Furgoneta
@@ -795,7 +970,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         {/* General Observations */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">8. Observaciones Generales</CardTitle>
+            <CardTitle className="text-primary">9. Observaciones Generales</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
