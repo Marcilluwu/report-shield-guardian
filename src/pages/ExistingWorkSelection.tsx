@@ -58,7 +58,7 @@ export const ExistingWorkSelection = () => {
 
     try {
       const response = await fetch(
-        `https://n8n.n8n.instalia.synology.me/webhook-test/fetch_txt?folder=${encodeURIComponent(folderName)}`,
+        `https://n8n.n8n.instalia.synology.me/webhook/fetch_txt?folder=${encodeURIComponent(folderName)}`,
         {
           method: 'GET',
           headers: {

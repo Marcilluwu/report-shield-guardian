@@ -1123,6 +1123,16 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
               <span className="hidden sm:inline">Generar Informe PDF</span>
               <span className="sm:hidden">Generar PDF</span>
             </Button>
+            <Button
+              onClick={() => window.location.href = '/'}
+              size="lg"
+              variant="secondary"
+              className="shadow-safety w-full sm:w-auto"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Volver al Inicio</span>
+              <span className="sm:hidden">Inicio</span>
+            </Button>
           </div>
         </div>
       </div>
