@@ -380,7 +380,7 @@ export const usePDFGenerator = (): UsePDFGeneratorReturn => {
 
       const baseFilename = filename.replace(/\.(pdf|docx)$/i, '');
       const pdfFilename = filename.endsWith('.pdf') ? filename : `${baseFilename}.pdf`;
-      const docxFilename = baseFilename.replace('.Informe', '') + '.Informe.docx';
+      const docxFilename = `${baseFilename}.docx`;
 
       setProgress(10);
       toast({

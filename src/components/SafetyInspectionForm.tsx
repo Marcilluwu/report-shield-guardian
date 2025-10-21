@@ -183,7 +183,7 @@ export const SafetyInspectionForm = () => {
     if (state?.loadFailed) {
       toast({
         title: 'Información',
-        description: 'No se pudieron cargar los datos automáticamente. Usa "Carga acta anterior" para cargar el archivo manualmente.',
+        description: 'No se pudieron cargar los datos automáticamente. Usa "Cargar Acta Anterior Manualmente" para cargar el archivo manualmente.',
         variant: 'default'
       });
     }
@@ -440,7 +440,8 @@ export const SafetyInspectionForm = () => {
     const expedient = inspectionData.expedientNumber || 'SinExpediente';
     const workName = inspectionData.work.name || 'SinObra';
     
-    const base = `${expedient}. ${workName}_${year}_${day}_${month}`;
+    // Formato: YYDDMM_Expediente. Nombre.Acta.extension
+    const base = `${year}${day}${month}_${expedient}. ${workName}.Acta`;
     return extension ? `${base}.${extension}` : base;
   };
 
@@ -702,7 +703,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
           <CardContent className="space-y-6">
             {!isNewWork && (
               <div>
-                <Label>Carga acta anterior</Label>
+                <Label>Cargar Acta Anterior Manualmente</Label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -716,7 +717,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
                   className="w-full"
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Carga acta anterior
+                  Cargar Acta Anterior Manualmente
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">
                   Método alternativo: carga manualmente un archivo .txt de una inspección previa
