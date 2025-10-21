@@ -268,62 +268,6 @@ export async function generateDocx(
       })
     );
 
-    // Tabla de EPIs con anchos de columna
-    const epiTableRows = [
-      new TableRow({
-        children: [
-          new TableCell({ 
-            children: [new Paragraph({ text: "Código", alignment: "center" })],
-            width: { size: 1500, type: "dxa" }
-          }),
-          new TableCell({ 
-            children: [new Paragraph({ text: "EPI/Elemento", alignment: "center" })],
-            width: { size: 4500, type: "dxa" }
-          }),
-          new TableCell({ 
-            children: [new Paragraph({ text: "Estado", alignment: "center" })],
-            width: { size: 2000, type: "dxa" }
-          }),
-          new TableCell({ 
-            children: [new Paragraph({ text: "Responsable", alignment: "center" })],
-            width: { size: 2000, type: "dxa" }
-          })
-        ]
-      })
-    ];
-
-    data.episReviewed.forEach((epi, index) => {
-      epiTableRows.push(
-        new TableRow({
-          children: [
-            new TableCell({ 
-              children: [new Paragraph({ text: String(index + 1).padStart(2, '0') })],
-              width: { size: 1500, type: "dxa" }
-            }),
-            new TableCell({ 
-              children: [new Paragraph({ text: epi.name })],
-              width: { size: 4500, type: "dxa" }
-            }),
-            new TableCell({ 
-              children: [new Paragraph({ text: epi.checked ? 'Correcto' : 'Deficiente' })],
-              width: { size: 2000, type: "dxa" }
-            }),
-            new TableCell({ 
-              children: [new Paragraph({ text: 'Inspector' })],
-              width: { size: 2000, type: "dxa" }
-            })
-          ]
-        })
-      );
-    });
-
-    documentChildren.push(
-      new Table({
-        rows: epiTableRows,
-        width: { size: 100, type: "pct" }
-      })
-    );
-
     // Desarrollo de la inspección
     documentChildren.push(
       new Paragraph({
@@ -392,6 +336,24 @@ export async function generateDocx(
         );
       }
     });
+
+    // Observaciones Generales
+    if (data.generalObservations && data.generalObservations.trim()) {
+      documentChildren.push(
+        new Paragraph({
+          text: "OBSERVACIONES GENERALES",
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        })
+      );
+
+      documentChildren.push(
+        new Paragraph({
+          text: data.generalObservations,
+          spacing: { after: 300 }
+        })
+      );
+    }
 
     // Firma
     documentChildren.push(
