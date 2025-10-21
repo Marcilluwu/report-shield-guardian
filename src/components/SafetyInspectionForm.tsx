@@ -870,38 +870,10 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
           </CardContent>
         </Card>
 
-        {/* EPIs */}
-        <Card className="shadow-safety">
-          <CardHeader>
-            <CardTitle className="text-primary">3. Resumen de las EPIS inspeccionadas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {inspectionData.episReviewed.map((epi) => (
-                <div key={epi.id} className="flex items-center space-x-3">
-                  <Checkbox
-                    id={epi.id}
-                    checked={epi.checked}
-                    onCheckedChange={() => toggleEPI(epi.id)}
-                  />
-                  <Label htmlFor={epi.id} className="cursor-pointer">
-                    {epi.name}
-                  </Label>
-                  {epi.checked && (
-                    <Badge variant="secondary" className="bg-safety-green-light text-safety-green">
-                      Revisado
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Safety Measures Checklist */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">4. Medidas de Seguridad y Prevención</CardTitle>
+            <CardTitle className="text-primary">3. Medidas de Seguridad y Prevención</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Medidas de protección colectiva */}
@@ -1013,7 +985,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
 
         {/* Work Environment Photos */}
         <PhotoUploadSection
-          title="6. Entorno de la Obra"
+          title="4. Entorno de la Obra"
           inputId="photos-workEnvironment"
           photos={inspectionData.workEnvironment.photos}
           onUpload={(files) => handleFileUpload(files, 'workEnvironment')}
@@ -1023,7 +995,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
 
         {/* Tools Status Photos */}
         <PhotoUploadSection
-          title="7. Estado de las Herramientas"
+          title="5. Estado de las Herramientas"
           inputId="photos-toolsStatus"
           photos={inspectionData.toolsStatus.photos}
           onUpload={(files) => handleFileUpload(files, 'toolsStatus')}
@@ -1035,7 +1007,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         <Card className="shadow-safety">
           <CardHeader>
             <CardTitle className="text-primary flex items-center justify-between">
-              8. Estado de las Furgonetas
+              6. Estado de las Furgonetas
               <Button onClick={addVan} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Añadir Furgoneta
@@ -1082,7 +1054,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
         {/* General Observations */}
         <Card className="shadow-safety">
           <CardHeader>
-            <CardTitle className="text-primary">9. Observaciones Generales</CardTitle>
+            <CardTitle className="text-primary">7. Observaciones Generales</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
