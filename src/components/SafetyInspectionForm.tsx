@@ -133,6 +133,7 @@ export const SafetyInspectionForm = () => {
   const [selectedLogo, setSelectedLogo] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('');
+  const [isNewWork, setIsNewWork] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // ✅ Hook Offline-First
@@ -157,6 +158,10 @@ export const SafetyInspectionForm = () => {
   useEffect(() => {
     const state = location.state as any;
     
+    if (state?.isNewWork !== undefined) {
+      setIsNewWork(state.isNewWork);
+    }
+
     if (state?.expedientNumber) {
       // Nueva obra: precargar solo el número de expediente
       setInspectionData(prev => ({
@@ -695,27 +700,29 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
             <CardTitle className="text-primary">Selección de Logo y Carpeta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div>
-              <Label>Carga acta anterior</Label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".txt"
-                onChange={handleFileInputChange}
-                className="hidden"
-              />
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline"
-                className="w-full"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Carga acta anterior
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                Método alternativo: carga manualmente un archivo .txt de una inspección previa
-              </p>
-            </div>
+            {!isNewWork && (
+              <div>
+                <Label>Carga acta anterior</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Carga acta anterior
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Método alternativo: carga manualmente un archivo .txt de una inspección previa
+                </p>
+              </div>
+            )}
             <LogoSelector
               selectedLogo={selectedLogo}
               onLogoChange={(name, url) => {
