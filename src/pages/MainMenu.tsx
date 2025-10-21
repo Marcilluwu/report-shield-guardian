@@ -8,42 +8,51 @@ export const MainMenu = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl">Actas de Seguridad</CardTitle>
-          <CardDescription>Selecciona el tipo de acta que deseas crear</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <Button
-            variant="outline"
-            className="h-40 flex flex-col gap-4 hover:bg-primary/10 hover:border-primary"
-            onClick={() => navigate('/nueva-obra')}
-          >
-            <FileText className="h-12 w-12" />
-            <div className="text-center">
-              <div className="font-semibold text-lg">Actas Nueva Obra</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Crear acta para una obra nueva
-              </div>
-            </div>
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-primary mb-2">
+            Actas de Seguridad
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Selecciona el tipo de acta que deseas crear
+          </p>
+        </div>
 
-          <Button
-            variant="outline"
-            className="h-40 flex flex-col gap-4 hover:bg-primary/10 hover:border-primary"
-            onClick={() => navigate('/obra-existente')}
-          >
-            <FolderOpen className="h-12 w-12" />
-            <div className="text-center">
-              <div className="font-semibold text-lg">Acta Obra Existente</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Continuar acta de una obra existente
-              </div>
+        <Card className="shadow-safety">
+          <CardContent className="pt-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Button
+                variant="outline"
+                className="h-48 flex flex-col gap-4 hover:bg-primary/10 hover:border-primary transition-all shadow-safety"
+                onClick={() => navigate('/nueva-obra')}
+              >
+                <FileText className="h-16 w-16 text-primary" />
+                <div className="text-center">
+                  <div className="font-semibold text-xl text-primary mb-2">Actas Nueva Obra</div>
+                  <div className="text-sm text-muted-foreground">
+                    Crear acta para una obra nueva
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-48 flex flex-col gap-4 hover:bg-primary/10 hover:border-primary transition-all shadow-safety"
+                onClick={() => navigate('/obra-existente')}
+              >
+                <FolderOpen className="h-16 w-16 text-primary" />
+                <div className="text-center">
+                  <div className="font-semibold text-xl text-primary mb-2">Acta Obra Existente</div>
+                  <div className="text-sm text-muted-foreground">
+                    Continuar acta de una obra existente
+                  </div>
+                </div>
+              </Button>
             </div>
-          </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
