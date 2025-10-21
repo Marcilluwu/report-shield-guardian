@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Eye, Wifi, WifiOff, RefreshCw, Save, Upload } from 'lucide-react';
+import { Trash2, Plus, Eye, Wifi, WifiOff, RefreshCw, Save, Upload, ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { InspectionPDFPreview } from './InspectionPDFPreview';
 import { LogoSelector } from './LogoSelector';
@@ -127,6 +128,7 @@ const defaultSafetyMeasures: SafetyMeasureItem[] = [
 
 
 export const SafetyInspectionForm = () => {
+  const location = useLocation();
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [selectedLogo, setSelectedLogo] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -148,6 +150,93 @@ export const SafetyInspectionForm = () => {
     vans: [{ id: '1', licensePlate: '', photos: [] }],
     generalObservations: ''
   });
+
+  // =====================================================
+  // CARGAR DATOS AUTOMÁTICAMENTE DESDE NAVEGACIÓN
+  // =====================================================
+  useEffect(() => {
+    const state = location.state as any;
+    
+    if (state?.expedientNumber) {
+      // Nueva obra: precargar solo el número de expediente
+      setInspectionData(prev => ({
+        ...prev,
+        expedientNumber: state.expedientNumber
+      }));
+    }
+
+    if (state?.folderName) {
+      // Obra existente: establecer la carpeta
+      setSelectedFolder(state.folderName);
+    }
+
+    if (state?.textData) {
+      // Obra existente con datos: parsear y cargar automáticamente
+      loadDataFromText(state.textData);
+    }
+
+    if (state?.loadFailed) {
+      toast({
+        title: 'Información',
+        description: 'No se pudieron cargar los datos automáticamente. Usa "Carga acta anterior" para cargar el archivo manualmente.',
+        variant: 'default'
+      });
+    }
+  }, [location.state]);
+
+  const loadDataFromText = (text: string) => {
+    try {
+      // Parsear los datos del archivo
+      const expedientMatch = text.match(/N° de Expediente: (.+)/);
+      const promoterMatch = text.match(/Promotor: (.+)/);
+      const projectMatch = text.match(/Proyecto: (.+)/);
+      const locationMatch = text.match(/Emplazamiento: (.+)/);
+      const inspectorMatch = text.match(/Inspector: (.+)/);
+      const emailMatch = text.match(/Email del Inspector: (.+)/);
+      const folderMatch = text.match(/Carpeta de proyecto: (.+)/);
+      const logoMatch = text.match(/Logo seleccionado: (.+)/);
+      
+      // Actualizar el estado con los datos recuperados
+      setInspectionData(prev => ({
+        ...prev,
+        expedientNumber: expedientMatch?.[1] || '',
+        work: {
+          ...prev.work,
+          promotingCompany: promoterMatch?.[1] || '',
+          name: projectMatch?.[1] || '',
+          location: locationMatch?.[1] || ''
+        },
+        inspector: {
+          name: inspectorMatch?.[1] || '',
+          email: emailMatch?.[1] || ''
+        }
+      }));
+      
+      // Actualizar carpeta si existe
+      const folderValue = folderMatch?.[1];
+      if (folderValue && folderValue !== 'No especificada') {
+        setSelectedFolder(folderValue);
+      }
+      
+      // Actualizar logo si existe
+      const logoValue = logoMatch?.[1];
+      if (logoValue && logoValue !== 'No seleccionado') {
+        setSelectedLogo(logoValue);
+      }
+      
+      toast({
+        title: '✅ Datos cargados automáticamente',
+        description: 'Los datos del acta anterior se han cargado correctamente.',
+      });
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      toast({
+        title: '❌ Error',
+        description: 'No se pudieron cargar los datos automáticamente.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const addWorker = () => {
     const newWorker: Worker = {
@@ -540,6 +629,15 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
   return (
     <div className="min-h-screen bg-gradient-to-br from-safety-green-light to-background p-4 pb-48">
       <div className="max-w-4xl mx-auto space-y-8">
+        <Button
+          variant="ghost"
+          onClick={() => window.location.href = '/'}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver al menú
+        </Button>
+
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-2">
             Acta de Inspección de Seguridad
@@ -598,7 +696,7 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <Label>Cargar Datos de Inspección</Label>
+              <Label>Carga acta anterior</Label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -612,10 +710,10 @@ Logo seleccionado: ${selectedLogo || 'No seleccionado'}
                 className="w-full"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Cargar archivo .txt
+                Carga acta anterior
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                Selecciona un archivo .txt previamente generado para recuperar los datos
+                Método alternativo: carga manualmente un archivo .txt de una inspección previa
               </p>
             </div>
             <LogoSelector
