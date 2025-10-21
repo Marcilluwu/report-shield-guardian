@@ -87,7 +87,13 @@ export const OfflineQueueStatus = () => {
                       </span>
                     </div>
                     
-                    <p className="text-sm font-medium mt-2">
+                    {entry.payload?.filename && (
+                      <p className="text-sm font-semibold mt-2 text-primary">
+                        📄 {entry.payload.filename}
+                      </p>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground mt-1">
                       {entry.method} {entry.endpoint}
                     </p>
                     
