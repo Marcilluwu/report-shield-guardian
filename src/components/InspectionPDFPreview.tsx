@@ -147,8 +147,8 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
       }
 
       const baseFileName = generateFilename();
-      const pdfFilename = `${baseFileName}.Informe.pdf`;
-      const docxFilename = `${baseFileName}.Informe.docx`;
+      const pdfFilename = `${baseFileName}.pdf`;
+      const docxFilename = `${baseFileName}.docx`;
       
       // Obtener referencia al contenido del documento
       const contentElement = document.getElementById('pdf-content');
