@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, FolderOpen } from 'lucide-react';
+import { FileText, FolderOpen, History } from 'lucide-react';
 
 export const MainMenu = () => {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export const MainMenu = () => {
 
         <Card className="shadow-safety">
           <CardContent className="pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               <Button
                 variant="outline"
                 className="h-48 flex flex-col gap-4 hover:bg-primary/10 hover:border-primary transition-all shadow-safety"
@@ -46,6 +46,20 @@ export const MainMenu = () => {
                   <div className="font-semibold text-xl text-primary mb-2">Acta Obra Existente</div>
                   <div className="text-sm text-muted-foreground">
                     Continuar acta de una obra existente
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-48 flex flex-col gap-4 hover:bg-primary/10 hover:border-primary transition-all shadow-safety"
+                onClick={() => navigate('/inspecciones-previas')}
+              >
+                <History className="h-16 w-16 text-primary" />
+                <div className="text-center">
+                  <div className="font-semibold text-xl text-primary mb-2">Inspecciones Previas</div>
+                  <div className="text-sm text-muted-foreground">
+                    Ver actas anteriores
                   </div>
                 </div>
               </Button>

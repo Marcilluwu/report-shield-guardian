@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import { NewWorkValidation } from "./pages/NewWorkValidation";
 import { ExistingWorkSelection } from "./pages/ExistingWorkSelection";
+import { PreviousInspections } from "./pages/PreviousInspections";
 import { SafetyInspectionForm } from "./components/SafetyInspectionForm";
 import NotFound from "./pages/NotFound";
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/nueva-obra" element={<NewWorkValidation />} />
           <Route path="/obra-existente" element={<ExistingWorkSelection />} />
+          <Route path="/inspecciones-previas" element={<PreviousInspections />} />
           <Route path="/formulario" element={<SafetyInspectionForm />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
