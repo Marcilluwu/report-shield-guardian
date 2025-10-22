@@ -142,18 +142,29 @@ export const PreviousInspections = () => {
       if (!response.ok) throw new Error('Error al obtener PDF');
       
       const blob = await response.blob();
-      // Crear un blob con el tipo correcto para evitar problemas de CORS
-      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-      const url = URL.createObjectURL(pdfBlob);
-      setPdfUrl(url);
-      setStep('pdf');
+      
+      // Convertir a base64 data URL en lugar de blob URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPdfUrl(reader.result as string);
+        setStep('pdf');
+        setLoading(false);
+      };
+      reader.onerror = () => {
+        toast({
+          title: 'Error',
+          description: 'No se pudo cargar el PDF',
+          variant: 'destructive',
+        });
+        setLoading(false);
+      };
+      reader.readAsDataURL(blob);
     } catch (error) {
       toast({
         title: 'Error',
         description: 'No se pudo cargar el PDF',
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -183,10 +194,7 @@ export const PreviousInspections = () => {
       setSelectedFecha(null);
       setSelectedArchivo(null);
       setArchivos([]);
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(null);
-      }
+      setPdfUrl(null);
     } else {
       navigate('/');
     }
