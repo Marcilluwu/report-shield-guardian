@@ -37,6 +37,12 @@ interface VanStatus {
   photos: PhotoWithComment[];
 }
 
+interface SafetyMeasureItem {
+  id: string;
+  name: string;
+  checked: boolean;
+}
+
 interface InspectionData {
   expedientNumber: string;
   inspector: {
@@ -50,6 +56,7 @@ interface InspectionData {
   };
   workers: Worker[];
   episReviewed: EPIItem[];
+  safetyMeasures: SafetyMeasureItem[];
   workEnvironment: {
     photos: PhotoWithComment[];
   };
@@ -390,12 +397,26 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
                   </div>
                 </div>
               )}
+
+              {/* Safety Measures */}
+              {data.safetyMeasures && data.safetyMeasures.length > 0 && (
+                <div className="mb-4">
+                  <h2 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#4a7c59' }}>3. Medidas de Seguridad Implementadas</h2>
+                  <div style={{ fontSize: '10px', lineHeight: '1.8' }}>
+                    {data.safetyMeasures.map((measure, index) => (
+                      <div key={measure.id} style={{ marginBottom: '4px' }}>
+                        <strong>{measure.name}</strong> - {measure.checked ? 'Correcto' : 'No implementado'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Work Environment Photos */}
             {data.workEnvironment.photos.length > 0 && (
               <div className="pdf-page" style={{ padding: '15mm' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>3. Entorno de la Obra</h2>
+                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>4. Entorno de la Obra</h2>
                 {data.workEnvironment.photos.map((photo, index) => (
                   <div key={index} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
                     {photo.comment ? (
@@ -418,7 +439,7 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
             {/* Tools Status Photos */}
             {data.toolsStatus.photos.length > 0 && (
               <div className="pdf-page" style={{ padding: '15mm' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>4. Estado de las Herramientas</h2>
+                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>5. Estado de las Herramientas</h2>
                 {data.toolsStatus.photos.map((photo, index) => (
                   <div key={index} style={{ marginBottom: '15px', pageBreakInside: 'avoid' }}>
                     {photo.comment ? (
@@ -445,7 +466,7 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
                   van.photos.length > 0 && (
                     <div key={van.id} className="pdf-page" style={{ padding: '15mm' }}>
                       {vanIndex === 0 && (
-                        <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>5. Estado de las Furgonetas</h2>
+                        <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>6. Estado de las Furgonetas</h2>
                       )}
                       <h3 style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
                         Matrícula de la furgoneta {vanIndex + 1}: {van.licensePlate || 'Sin especificar'}
@@ -475,7 +496,7 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
             {/* General Observations */}
             {data.generalObservations && data.generalObservations.trim() && (
               <div className="pdf-page" style={{ padding: '15mm' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>6. Observaciones Generales</h2>
+                <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#4a7c59' }}>7. Observaciones Generales</h2>
                 <div style={{ fontSize: '11px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                   {data.generalObservations}
                 </div>

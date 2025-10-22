@@ -1,8 +1,7 @@
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { FileSystemStorage } from './fileSystemStorage';
 import { ConfigManager } from './configManager';
-import { WebhookApi } from '@/services/webhookApi';
 
 interface Worker {
   id: string;
@@ -13,6 +12,12 @@ interface Worker {
 }
 
 interface EPIItem {
+  id: string;
+  name: string;
+  checked: boolean;
+}
+
+interface SafetyMeasureItem {
   id: string;
   name: string;
   checked: boolean;
@@ -32,6 +37,7 @@ interface VanStatus {
 }
 
 interface InspectionData {
+  expedientNumber: string;
   inspector: {
     name: string;
     email: string;
@@ -43,6 +49,7 @@ interface InspectionData {
   };
   workers: Worker[];
   episReviewed: EPIItem[];
+  safetyMeasures: SafetyMeasureItem[];
   workEnvironment: {
     photos: PhotoWithComment[];
   };
@@ -62,14 +69,9 @@ export async function generateDocx(
   fileName?: string
 ): Promise<Blob> {
   try {
-    // Convertir imágenes a buffer usando ArrayBuffer directamente
+    // Convertir imágenes a buffer
     const imageBuffers: { [key: string]: ArrayBuffer } = {};
-    const allPhotos = [
-      ...data.workEnvironment.photos,
-      ...data.toolsStatus.photos,
-      ...data.vans.flatMap(van => van.photos)
-    ];
-
+    
     // Cargar logo si está disponible
     let logoBuffer: ArrayBuffer | null = null;
     if (logoUrl) {
@@ -92,13 +94,18 @@ export async function generateDocx(
       }
     }
 
-    // Procesar todas las fotos en paralelo con manejo de errores individual
+    // Recopilar todas las fotos en el orden correcto
+    const allPhotos = [
+      ...data.workEnvironment.photos,
+      ...data.toolsStatus.photos,
+      ...data.vans.flatMap(van => van.photos)
+    ];
+
+    // Procesar todas las fotos en paralelo
     const photoPromises = allPhotos.map(async (photo) => {
       try {
         const response = await fetch(photo.url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const buffer = await response.arrayBuffer();
         return { id: photo.id, buffer, success: true };
       } catch (error) {
@@ -108,294 +115,405 @@ export async function generateDocx(
     });
 
     const photoResults = await Promise.all(photoPromises);
-    
-    // Almacenar solo las fotos que se cargaron exitosamente
     photoResults.forEach(result => {
       if (result.success && result.buffer) {
         imageBuffers[result.id] = result.buffer;
       }
     });
 
-    const failedPhotos = photoResults.filter(r => !r.success).length;
-    if (failedPhotos > 0) {
-      console.warn(`${failedPhotos} foto(s) no se pudieron cargar`);
-    }
-
     // Crear elementos del documento
-    const documentChildren = [];
+    const documentChildren: Paragraph[] = [];
 
-    // Logo si está disponible
+    // === HEADER: Logo y título verde ===
     if (logoBuffer) {
       documentChildren.push(
         new Paragraph({
           children: [
             new ImageRun({
               data: logoBuffer,
-              transformation: {
-                width: 100,
-                height: 100
-              },
+              transformation: { width: 64, height: 64 },
               type: "jpg"
             })
           ],
-          alignment: "center",
-          spacing: { after: 300 }
+          alignment: AlignmentType.LEFT,
+          spacing: { after: 200 }
         })
       );
     }
 
-    // Título principal
-    documentChildren.push(
-      new Paragraph({
-        text: "ACTA DE INSPECCIÓN DE SEGURIDAD",
-        heading: HeadingLevel.HEADING_1,
-        alignment: "center",
-        spacing: { after: 400 }
-      })
-    );
-
-    // Fecha
     documentChildren.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: `FECHA INSPECCIÓN: ${new Date().toLocaleDateString('es-ES')}`,
-            bold: true
+            text: "Acta de Revisión, Pruebas Hidrostáticas y Recargas de Equipos Contraincendios",
+            bold: true,
+            size: 32, // 16pt
+            color: "4a7c59"
           })
         ],
-        alignment: "center",
-        spacing: { after: 400 }
-      })
-    );
-
-    // Información del proyecto
-    documentChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: "PROMOTOR: ", bold: true }),
-          new TextRun({ text: data.work.promotingCompany })
-        ],
-        spacing: { after: 200 }
-      })
-    );
-
-    documentChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: "PROYECTO: ", bold: true }),
-          new TextRun({ text: data.work.name })
-        ],
-        spacing: { after: 200 }
-      })
-    );
-
-    documentChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: "EMPLAZAMIENTO: ", bold: true }),
-          new TextRun({ text: data.work.location })
-        ],
-        spacing: { after: 200 }
-      })
-    );
-
-    documentChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: "INSPECTOR: ", bold: true }),
-          new TextRun({ text: data.inspector.name })
-        ],
-        spacing: { after: 200 }
-      })
-    );
-
-    documentChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: "EMAIL: ", bold: true }),
-          new TextRun({ text: data.inspector.email })
-        ],
-        spacing: { after: 400 }
-      })
-    );
-
-    // Participantes
-    documentChildren.push(
-      new Paragraph({
-        text: "PARTICIPANTES",
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 400, after: 200 }
-      })
-    );
-
-    documentChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: "INSPECTOR DE SEGURIDAD: ", bold: true }),
-          new TextRun({ text: data.inspector.name })
-        ],
-        spacing: { after: 200 }
-      })
-    );
-
-    // Workers
-    data.workers.forEach(worker => {
-      documentChildren.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: `${worker.category.toUpperCase()}: `, bold: true }),
-            new TextRun({ text: `${worker.name}, ${worker.company}` }),
-            new TextRun({ text: ` (DNI: ${worker.dni})`, italics: true })
-          ],
-          spacing: { after: 200 }
-        })
-      );
-    });
-
-    // Resumen de inspección
-    documentChildren.push(
-      new Paragraph({
-        text: "RESUMEN DE LA INSPECCIÓN",
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 400, after: 200 }
-      })
-    );
-
-    documentChildren.push(
-      new Paragraph({
-        text: "Se levanta acta de la inspección de seguridad realizada en la fecha indicada.",
         spacing: { after: 300 }
       })
     );
 
-    // Desarrollo de la inspección
+    // === SECCIÓN 1: Datos de la inspección ===
     documentChildren.push(
       new Paragraph({
-        text: "DESARROLLO DE LA INSPECCIÓN",
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 400, after: 300 }
+        children: [
+          new TextRun({
+            text: "1. Datos de la inspección",
+            bold: true,
+            size: 26, // 13pt
+            color: "4a7c59"
+          })
+        ],
+        spacing: { before: 200, after: 160 }
       })
     );
 
-    // Fotos con comentarios - solo incluir las que se cargaron exitosamente
-    allPhotos.forEach((photo, index) => {
-      // Verificar si la foto se cargó exitosamente
-      if (!imageBuffers[photo.id]) {
-        console.warn(`Saltando foto ${photo.id} - no se pudo cargar`);
-        return;
-      }
-
+    if (data.expedientNumber) {
       documentChildren.push(
         new Paragraph({
           children: [
-            new TextRun({ 
-              text: `${String(index + 1).padStart(2, '0')}.${String(index + 1).padStart(2, '0')}`, 
-              bold: true 
-            })
+            new TextRun({ text: "N° de Expediente: ", bold: true, size: 22 }),
+            new TextRun({ text: data.expedientNumber, size: 22 })
           ],
-          spacing: { before: 300, after: 200 }
+          spacing: { after: 120 }
         })
       );
+    }
 
+    documentChildren.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Promotor: ", bold: true, size: 22 }),
+          new TextRun({ text: data.work.promotingCompany, size: 22 })
+        ],
+        spacing: { after: 120 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Proyecto: ", bold: true, size: 22 }),
+          new TextRun({ text: data.work.name, size: 22 })
+        ],
+        spacing: { after: 120 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Emplazamiento: ", bold: true, size: 22 }),
+          new TextRun({ text: data.work.location, size: 22 })
+        ],
+        spacing: { after: 120 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Inspector: ", bold: true, size: 22 }),
+          new TextRun({ text: data.inspector.name, size: 22 })
+        ],
+        spacing: { after: 120 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Email del inspector: ", bold: true, size: 22 }),
+          new TextRun({ text: data.inspector.email, size: 22 })
+        ],
+        spacing: { after: 120 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Fecha: ", bold: true, size: 22 }),
+          new TextRun({ text: new Date().toLocaleDateString('es-ES'), size: 22 })
+        ],
+        spacing: { after: 300 }
+      })
+    );
+
+    // === SECCIÓN 2: Participantes ===
+    if (data.workers.length > 0) {
       documentChildren.push(
         new Paragraph({
-          text: photo.comment || 'Sin comentario',
-          spacing: { after: 200 }
+          children: [
+            new TextRun({
+              text: "2. Participantes",
+              bold: true,
+              size: 24, // 12pt
+              color: "333333"
+            })
+          ],
+          spacing: { before: 200, after: 120 }
         })
       );
 
-      try {
+      data.workers.forEach((worker, index) => {
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Operario ${index + 1}: `, bold: true, size: 20 }),
+              new TextRun({ text: `${worker.name}, ${worker.company}, DNI: ${worker.dni}`, size: 20 })
+            ],
+            spacing: { after: 100 }
+          })
+        );
+      });
+    }
+
+    // === SECCIÓN 3: Medidas de Seguridad ===
+    if (data.safetyMeasures && data.safetyMeasures.length > 0) {
+      documentChildren.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "3. Medidas de Seguridad Implementadas",
+              bold: true,
+              size: 26, // 13pt
+              color: "4a7c59"
+            })
+          ],
+          spacing: { before: 300, after: 160 }
+        })
+      );
+
+      data.safetyMeasures.forEach((measure) => {
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: measure.name, bold: true, size: 20 }),
+              new TextRun({ text: " - ", size: 20 }),
+              new TextRun({ text: measure.checked ? "Correcto" : "No implementado", size: 20 })
+            ],
+            spacing: { after: 80 }
+          })
+        );
+      });
+    }
+
+    // === SECCIÓN 4: Entorno de la Obra (fotos) ===
+    if (data.workEnvironment.photos.length > 0) {
+      documentChildren.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "4. Entorno de la Obra",
+              bold: true,
+              size: 28, // 14pt
+              color: "4a7c59"
+            })
+          ],
+          spacing: { before: 400, after: 240 },
+          pageBreakBefore: true
+        })
+      );
+
+      data.workEnvironment.photos.forEach((photo, index) => {
+        if (!imageBuffers[photo.id]) return;
+
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: photo.comment || `Foto ${index + 1}`,
+                bold: true,
+                size: 20
+              })
+            ],
+            spacing: { after: 120 }
+          })
+        );
+
         documentChildren.push(
           new Paragraph({
             children: [
               new ImageRun({
                 data: imageBuffers[photo.id],
-                transformation: {
-                  width: 400,
-                  height: 300
-                },
+                transformation: { width: 400, height: 300 },
                 type: "jpg"
               })
             ],
-            alignment: "center",
+            alignment: AlignmentType.CENTER,
             spacing: { after: 300 }
           })
         );
-      } catch (error) {
-        console.error(`Error agregando imagen ${photo.id} al documento:`, error);
+      });
+    }
+
+    // === SECCIÓN 5: Estado de las Herramientas (fotos) ===
+    if (data.toolsStatus.photos.length > 0) {
+      documentChildren.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "5. Estado de las Herramientas",
+              bold: true,
+              size: 28,
+              color: "4a7c59"
+            })
+          ],
+          spacing: { before: 400, after: 240 },
+          pageBreakBefore: true
+        })
+      );
+
+      data.toolsStatus.photos.forEach((photo, index) => {
+        if (!imageBuffers[photo.id]) return;
+
         documentChildren.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: '[Error: No se pudo incluir la imagen]',
-                italics: true
+                text: photo.comment || `Foto ${index + 1}`,
+                bold: true,
+                size: 20
               })
             ],
+            spacing: { after: 120 }
+          })
+        );
+
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: imageBuffers[photo.id],
+                transformation: { width: 400, height: 300 },
+                type: "jpg"
+              })
+            ],
+            alignment: AlignmentType.CENTER,
             spacing: { after: 300 }
           })
         );
-      }
-    });
+      });
+    }
 
-    // Observaciones Generales
+    // === SECCIÓN 6: Estado de las Furgonetas (fotos) ===
+    const vansWithPhotos = data.vans.filter(van => van.photos.length > 0);
+    if (vansWithPhotos.length > 0) {
+      let firstVan = true;
+      
+      vansWithPhotos.forEach((van, vanIndex) => {
+        if (firstVan) {
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "6. Estado de las Furgonetas",
+                  bold: true,
+                  size: 28,
+                  color: "4a7c59"
+                })
+              ],
+              spacing: { before: 400, after: 240 },
+              pageBreakBefore: true
+            })
+          );
+          firstVan = false;
+        }
+
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Matrícula de la furgoneta ${vanIndex + 1}: ${van.licensePlate || 'Sin especificar'}`,
+                bold: true,
+                size: 24,
+                color: "333333"
+              })
+            ],
+            spacing: { before: 300, after: 160 }
+          })
+        );
+
+        van.photos.forEach((photo, photoIndex) => {
+          if (!imageBuffers[photo.id]) return;
+
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: photo.comment || `Foto ${photoIndex + 1}`,
+                  bold: true,
+                  size: 20
+                })
+              ],
+              spacing: { after: 120 }
+            })
+          );
+
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  data: imageBuffers[photo.id],
+                  transformation: { width: 400, height: 300 },
+                  type: "jpg"
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 300 }
+            })
+          );
+        });
+      });
+    }
+
+    // === SECCIÓN 7: Observaciones Generales ===
     if (data.generalObservations && data.generalObservations.trim()) {
       documentChildren.push(
         new Paragraph({
-          text: "OBSERVACIONES GENERALES",
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 400, after: 200 }
+          children: [
+            new TextRun({
+              text: "7. Observaciones Generales",
+              bold: true,
+              size: 28,
+              color: "4a7c59"
+            })
+          ],
+          spacing: { before: 400, after: 240 },
+          pageBreakBefore: true
         })
       );
 
       documentChildren.push(
         new Paragraph({
-          text: data.generalObservations,
+          children: [
+            new TextRun({
+              text: data.generalObservations,
+              size: 22
+            })
+          ],
           spacing: { after: 300 }
         })
       );
     }
 
-    // Firma
+    // === FIRMA ===
     documentChildren.push(
       new Paragraph({
-        text: "FIRMA DE LOS PARTICIPANTES",
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 400, after: 300 }
+        text: "",
+        spacing: { before: 400 }
       })
     );
 
     documentChildren.push(
       new Paragraph({
         children: [
-          new TextRun({ text: "Firma de: ", bold: true }),
-          new TextRun({ text: signatureName })
+          new TextRun({ text: "Firma de: ", bold: true, size: 22 }),
+          new TextRun({ text: signatureName, size: 22 })
         ],
         spacing: { after: 200 }
       })
     );
 
-    // Agregar imagen de la firma si existe
     if (signatureBuffer) {
       documentChildren.push(
         new Paragraph({
           children: [
             new ImageRun({
               data: signatureBuffer,
-              transformation: {
-                width: 300,
-                height: 80
-              },
+              transformation: { width: 300, height: 80 },
               type: "png"
             })
           ],
-          alignment: "center",
-          spacing: { after: 200 }
-        })
-      );
-    } else {
-      documentChildren.push(
-        new Paragraph({
-          text: "_".repeat(50),
+          alignment: AlignmentType.CENTER,
           spacing: { after: 200 }
         })
       );
@@ -404,14 +522,16 @@ export async function generateDocx(
     documentChildren.push(
       new Paragraph({
         children: [
-          new TextRun({ 
-            text: `Fecha: ${new Date().toLocaleDateString('es-ES')}`, 
-            italics: true 
+          new TextRun({
+            text: `Fecha: ${new Date().toLocaleDateString('es-ES')}`,
+            italics: true,
+            size: 22
           })
         ]
       })
     );
 
+    // Crear documento
     const doc = new Document({
       sections: [{
         properties: {},
@@ -431,13 +551,13 @@ export async function generateDocx(
       
       if (saved) {
         console.log(`Documento guardado en docs generated/${projectFolder}/`);
-        return blob; // Retornar blob para envío externo al webhook
+        return blob;
       }
     }
     
     // Fallback: método tradicional
     saveAs(blob, docxFileName);
-    return blob; // Retornar blob para envío externo al webhook
+    return blob;
 
   } catch (error) {
     console.error('Error generando DOCX:', error);
