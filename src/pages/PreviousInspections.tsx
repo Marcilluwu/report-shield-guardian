@@ -13,6 +13,7 @@ interface FolderItem {
   name: string;
   path: string;
   type: string;
+  isdir?: boolean;
 }
 
 type Step = 'expedientes' | 'fechas' | 'archivos' | 'pdf';
@@ -47,7 +48,12 @@ export const PreviousInspections = () => {
       if (!response.ok) throw new Error('Error al obtener expedientes');
       
       const data = await response.json();
-      setExpedientes(data);
+      // Filtrar carpetas que contengan #recycle o #recicle
+      const filtered = data.filter((item: FolderItem) => 
+        !item.name.toLowerCase().includes('#recycle') && 
+        !item.name.toLowerCase().includes('#recicle')
+      );
+      setExpedientes(filtered);
     } catch (error) {
       toast({
         title: 'Error',
@@ -69,7 +75,12 @@ export const PreviousInspections = () => {
       if (!response.ok) throw new Error('Error al obtener fechas');
       
       const data = await response.json();
-      setFechas(data);
+      // Filtrar carpetas que contengan #recycle o #recicle
+      const filtered = data.filter((item: FolderItem) => 
+        !item.name.toLowerCase().includes('#recycle') && 
+        !item.name.toLowerCase().includes('#recicle')
+      );
+      setFechas(filtered);
       setStep('fechas');
     } catch (error) {
       toast({
@@ -92,8 +103,24 @@ export const PreviousInspections = () => {
       if (!response.ok) throw new Error('Error al obtener archivos');
       
       const data = await response.json();
-      setArchivos(data);
-      setStep('archivos');
+      
+      // Buscar automáticamente el archivo PDF
+      const pdfFile = data.find((item: FolderItem) => 
+        !item.isdir && item.name.toLowerCase().endsWith('.pdf')
+      );
+      
+      if (pdfFile) {
+        // Cargar automáticamente el PDF encontrado
+        setSelectedArchivo(pdfFile);
+        await fetchPDF(pdfFile.path);
+      } else {
+        toast({
+          title: 'Advertencia',
+          description: 'No se encontró ningún archivo PDF en esta fecha',
+          variant: 'destructive',
+        });
+        setStep('fechas');
+      }
     } catch (error) {
       toast({
         title: 'Error',
@@ -115,7 +142,9 @@ export const PreviousInspections = () => {
       if (!response.ok) throw new Error('Error al obtener PDF');
       
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      // Crear un blob con el tipo correcto para evitar problemas de CORS
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
       setStep('pdf');
     } catch (error) {
@@ -149,13 +178,11 @@ export const PreviousInspections = () => {
       setStep('expedientes');
       setSelectedExpediente(null);
       setFechas([]);
-    } else if (step === 'archivos') {
+    } else if (step === 'pdf') {
       setStep('fechas');
       setSelectedFecha(null);
-      setArchivos([]);
-    } else if (step === 'pdf') {
-      setStep('archivos');
       setSelectedArchivo(null);
+      setArchivos([]);
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
         setPdfUrl(null);
@@ -321,11 +348,12 @@ export const PreviousInspections = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="w-full h-[700px] border rounded-lg overflow-hidden">
+              <div className="w-full h-[700px] border rounded-lg overflow-hidden bg-gray-100">
                 <iframe
                   src={pdfUrl}
                   className="w-full h-full"
                   title="PDF Viewer"
+                  style={{ border: 'none' }}
                 />
               </div>
               <div className="mt-4 flex gap-3">
@@ -333,10 +361,12 @@ export const PreviousInspections = () => {
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = pdfUrl;
-                    link.download = selectedArchivo?.name || 'documento.pdf';
-                    link.click();
+                    if (pdfUrl) {
+                      const link = document.createElement('a');
+                      link.href = pdfUrl;
+                      link.download = selectedArchivo?.name || 'documento.pdf';
+                      link.click();
+                    }
                   }}
                 >
                   Descargar PDF
