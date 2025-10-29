@@ -361,7 +361,7 @@ Carpeta de proyecto: ${selectedFolder || 'No especificada'}
                     <img 
                       src={logoUrl} 
                       alt="Logo empresa" 
-                      className="h-16 w-auto object-contain"
+                      style={{ width: '60px', height: '60px', objectFit: 'contain' }}
                     />
                   </div>
                 )}
