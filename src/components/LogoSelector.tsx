@@ -1,29 +1,90 @@
 import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Upload, Image as ImageIcon } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Image as ImageIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { FileSystemStorage } from '@/utils/fileSystemStorage';
-import { ConfigManager } from '@/utils/configManager';
+
+const BASE_URL = 'https://n8n.n8n.instalia.synology.me/webhook';
+const API_HEADER = {
+  'X-API-Key': 'n8n-webhook-2024-secure-key-xyz789'
+};
 
 interface LogoSelectorProps {
   selectedLogo: string;
   onLogoChange: (logoName: string, logoUrl: string) => void;
 }
 
-export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogoChange }) => {
-  const [availableLogos, setAvailableLogos] = useState<{ name: string; url: string }[]>([]);
+interface LogoFile {
+  isdir: boolean;
+  name: string;
+  path: string;
+}
 
-  // Función para cargar logos desde la carpeta Media/Icons
+export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogoChange }) => {
+  const [availableLogos, setAvailableLogos] = useState<LogoFile[]>([]);
+  const [logoUrls, setLogoUrls] = useState<Map<string, string>>(new Map());
+  const [loading, setLoading] = useState(false);
+
+  // Función para cargar la lista de logos desde el webhook
   const loadLogos = async () => {
+    setLoading(true);
     try {
-      // En un entorno real, esto requeriría una API que liste los archivos
-      // Por ahora, mantendremos una lista de logos cargados dinámicamente
-      const logos = JSON.parse(localStorage.getItem('uploadedLogos') || '[]');
-      setAvailableLogos(logos);
+      const response = await fetch(`${BASE_URL}/logos_fetch`, {
+        headers: API_HEADER,
+      });
+      
+      if (!response.ok) throw new Error('Error al obtener logos');
+      
+      const data: LogoFile[] = await response.json();
+      // Filtrar solo archivos (no directorios)
+      const logoFiles = data.filter(item => !item.isdir && item.name.toLowerCase().endsWith('.png'));
+      setAvailableLogos(logoFiles);
+      
+      // Si hay un logo seleccionado, cargarlo
+      if (selectedLogo) {
+        const selectedLogoFile = logoFiles.find(logo => logo.name === selectedLogo);
+        if (selectedLogoFile) {
+          await fetchLogoImage(selectedLogoFile);
+        }
+      }
     } catch (error) {
       console.error('Error cargando logos:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar los logos disponibles',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para obtener la imagen de un logo específico
+  const fetchLogoImage = async (logo: LogoFile) => {
+    try {
+      const response = await fetch(`${BASE_URL}/logo?path=${encodeURIComponent(logo.path)}`, {
+        headers: API_HEADER,
+      });
+      
+      if (!response.ok) throw new Error('Error al obtener imagen del logo');
+      
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        setLogoUrls(prev => new Map(prev).set(logo.name, dataUrl));
+        onLogoChange(logo.name, dataUrl);
+      };
+      
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error cargando imagen del logo:', error);
+      toast({
+        title: 'Error',
+        description: `No se pudo cargar el logo ${logo.name}`,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -31,113 +92,39 @@ export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogo
     loadLogos();
   }, []);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
+  const handleLogoSelect = async (logoName: string) => {
+    const logo = availableLogos.find(l => l.name === logoName);
+    if (!logo) return;
 
-    for (const file of Array.from(files)) {
-      if (file.type === 'image/png') {
-        try {
-          const reader = new FileReader();
-          await new Promise<void>((resolve, reject) => {
-            reader.onload = async (e) => {
-              try {
-                const logoName = file.name.replace('.png', '');
-                const logoUrl = e.target?.result as string;
-                
-                // Intentar guardar en File System si está disponible
-                if (ConfigManager.isUsingFileSystemAPI()) {
-                  const blob = await fetch(logoUrl).then(r => r.blob());
-                  const saved = await FileSystemStorage.saveLogo(blob, file.name);
-                  
-                  if (saved) {
-                    console.log(`Logo guardado en Logos/${file.name}`);
-                  }
-                }
-                
-                // Guardar también en localStorage para referencia rápida
-                const existingLogos = JSON.parse(localStorage.getItem('uploadedLogos') || '[]');
-                const newLogo = { name: logoName, url: logoUrl };
-                const updatedLogos = existingLogos.filter((logo: any) => logo.name !== logoName);
-                updatedLogos.push(newLogo);
-                
-                localStorage.setItem('uploadedLogos', JSON.stringify(updatedLogos));
-                setAvailableLogos(updatedLogos);
-                
-                // Seleccionar automáticamente el logo recién subido
-                onLogoChange(logoName, logoUrl);
-                
-                toast({
-                  title: 'Logo guardado correctamente',
-                  description: `${logoName} está disponible para usar`
-                });
-                
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-        } catch (error) {
-          console.error('Error guardando logo:', error);
-          toast({
-            title: 'Error al guardar logo',
-            description: 'No se pudo guardar el logo en el sistema',
-            variant: 'destructive'
-          });
-        }
-      } else {
-        toast({
-          title: 'Formato no válido',
-          description: 'Solo se permiten archivos PNG',
-          variant: 'destructive'
-        });
-      }
+    // Si ya tenemos la URL en caché, usarla
+    if (logoUrls.has(logoName)) {
+      onLogoChange(logoName, logoUrls.get(logoName)!);
+      return;
     }
-    
-    // Limpiar el input
-    event.target.value = '';
+
+    // Si no, cargarla desde el webhook
+    await fetchLogoImage(logo);
   };
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label htmlFor="logo-upload" className="cursor-pointer">
-          <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-            <Upload className="mx-auto h-6 w-6 text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">Subir nuevos logos PNG</p>
-          </div>
-        </Label>
-        <Input
-          id="logo-upload"
-          type="file"
-          accept=".png"
-          multiple
-          className="hidden"
-          onChange={handleFileUpload}
-        />
-      </div>
-
       {availableLogos.length > 0 && (
         <div>
           <Label>Seleccionar Logo de Empresa</Label>
-          <Select value={selectedLogo} onValueChange={(value) => {
-            const logo = availableLogos.find(l => l.name === value);
-            if (logo) {
-              onLogoChange(logo.name, logo.url);
-            }
-          }}>
+          <Select 
+            value={selectedLogo} 
+            onValueChange={handleLogoSelect}
+            disabled={loading}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Selecciona una empresa" />
+              <SelectValue placeholder={loading ? "Cargando logos..." : "Selecciona una empresa"} />
             </SelectTrigger>
             <SelectContent>
               {availableLogos.map((logo) => (
                 <SelectItem key={logo.name} value={logo.name}>
                   <div className="flex items-center gap-2">
                     <ImageIcon className="h-4 w-4" />
-                    {logo.name}
+                    {logo.name.replace('.png', '')}
                   </div>
                 </SelectItem>
               ))}
@@ -146,20 +133,20 @@ export const LogoSelector: React.FC<LogoSelectorProps> = ({ selectedLogo, onLogo
         </div>
       )}
 
-      {selectedLogo && (
+      {selectedLogo && logoUrls.has(selectedLogo) && (
         <div className="mt-4">
           <Label>Logo seleccionado:</Label>
           <div className="mt-2 p-4 border rounded-lg bg-muted/50">
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 bg-white rounded border flex items-center justify-center p-2">
                 <img 
-                  src={availableLogos.find(l => l.name === selectedLogo)?.url} 
+                  src={logoUrls.get(selectedLogo)} 
                   alt={selectedLogo}
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
               <div>
-                <span className="font-medium block">{selectedLogo}</span>
+                <span className="font-medium block">{selectedLogo.replace('.png', '')}</span>
                 <span className="text-sm text-muted-foreground">Logo activo para el reporte</span>
               </div>
             </div>
