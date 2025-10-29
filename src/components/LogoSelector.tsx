@@ -6,7 +6,7 @@ import { toast } from '@/hooks/use-toast';
 
 const BASE_URL = 'https://n8n.n8n.instalia.synology.me/webhook';
 const API_HEADER = {
-  'X-API-Key': 'n8n-webhook-2024-secure-key-xyz789'
+  'psswd': '73862137816273861283dhvhfgdvgf27384rtfgcuyefgc7ewufgqwsdafsdf'
 };
 
 interface LogoSelectorProps {
