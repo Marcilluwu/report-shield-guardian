@@ -95,8 +95,8 @@ export const InspectionPDFPreview: React.FC<InspectionPDFPreviewProps> = ({
     const expedient = data.expedientNumber || 'SinExpediente';
     const workName = data.work.name || 'SinObra';
     
-    // Formato: YYDDMM_Expediente. Nombre.Acta.extension
-    const base = `${year}${day}${month}_${expedient}. ${workName}.Acta`;
+    // Formato: YYMMDD_Expediente. Nombre.Acta.extension
+    const base = `${year}${month}${day}_${expedient}. ${workName}.Acta`;
     return extension ? `${base}.${extension}` : base;
   };
 

@@ -440,8 +440,8 @@ export const SafetyInspectionForm = () => {
     const expedient = inspectionData.expedientNumber || 'SinExpediente';
     const workName = inspectionData.work.name || 'SinObra';
     
-    // Formato: YYDDMM_Expediente. Nombre.Acta.extension
-    const base = `${year}${day}${month}_${expedient}. ${workName}.Acta`;
+    // Formato: YYMMDD_Expediente. Nombre.Acta.extension
+    const base = `${year}${month}${day}_${expedient}. ${workName}.Acta`;
     return extension ? `${base}.${extension}` : base;
   };
 
